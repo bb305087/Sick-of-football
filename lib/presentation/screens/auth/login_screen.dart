@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -21,27 +22,60 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // Zmień zawartość metody _handleLogin w pliku login_screen.dart
+
+  // Zaktualizowana metoda _handleLogin w login_screen.dart
+
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
+      final email = _emailController.text.trim().toLowerCase();
+      final password = _passwordController.text;
+
+      // Dane dostępowe dla Trenera
+      const String coachEmail = 'admin';
+      const String coachPassword = 'admin';
+
+      String userRole = 'Zawodnik';
+
+      // Jeśli podano e-mail trenera, weryfikujemy jego hasło
+      if (email == coachEmail) {
+        if (password != coachPassword) {
+          _showErrorSnackBar('Nieprawidłowe hasło dla konta Trenera.');
+          return;
+        }
+        userRole = 'Trener';
+      }
+
       setState(() {
         _isLoading = true;
       });
 
-      // Symulacja żądania logowania do backendu FastAPI (JWT)
-      Future.delayed(const Duration(seconds: 2), () {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (!mounted) return;
+
         setState(() {
           _isLoading = false;
         });
 
-        // Tutaj nastąpi zapis tokenów do flutter_secure_storage
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Zalogowano pomyślnie jako: $_selectedRole!'),
-            backgroundColor: Colors.lightGreen,
+        // Przejście do Dashboardu z automatycznie wyznaczoną rolą
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => DashboardScreen(userRole: userRole),
           ),
         );
       });
     }
+  }
+
+// Pomocnicza metoda do wyświetlania komunikatów o błędzie
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red[700],
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -98,34 +132,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Wybór Roli (Trener / Zawodnik)
-                    DropdownButtonFormField<String>(
-                      value: _selectedRole,
-                      decoration: InputDecoration(
-                        labelText: 'Wybierz rolę',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        prefixIcon: const Icon(Icons.badge),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Zawodnik',
-                          child: Text('Zawodnik'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Trener',
-                          child: Text('Trener (Admin)'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedRole = value!;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
                     // Pole E-mail
                     TextFormField(
                       controller: _emailController,
@@ -138,6 +144,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefixIcon: const Icon(Icons.email),
                       ),
                       validator: (value) {
+                        // Pobieramy aktualnie wpisany e-mail z kontrolera
+                        const String coachEmail = 'admin';
+
+                        // Jeśli to konto trenera, pomijamy sprawdzanie poprawności maila
+                        if (value == coachEmail) {
+                          return null;
+                        }
                         if (value == null || value.isEmpty || !value.contains('@')) {
                           cache:
                           return 'Wprowadź poprawny adres e-mail';
@@ -150,30 +163,30 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Pole Hasło
                     TextFormField(
                       controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
+                      obscureText: true,
+                      decoration: const InputDecoration(
                         labelText: 'Hasło',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
+                        prefixIcon: Icon(Icons.lock),
                       ),
                       validator: (value) {
-                        if (value == null || value.length < 8) {
+                        if (value == null || value.isEmpty) {
+                          return 'Wprowadź hasło';
+                        }
+
+                        // Pobieramy aktualnie wpisany e-mail z kontrolera
+                        final email = _emailController.text.trim().toLowerCase();
+                        const String coachEmail = 'admin';
+
+                        // Jeśli to konto trenera, pomijamy sprawdzanie długości (pozwalamy na krótkie hasło do testów)
+                        if (email == coachEmail) {
+                          return null;
+                        }
+
+                        // Standardowa walidacja długości dla pozostałych użytkowników
+                        if (value.length < 8) {
                           return 'Hasło musi mieć co najmniej 8 znaków';
                         }
+
                         return null;
                       },
                     ),

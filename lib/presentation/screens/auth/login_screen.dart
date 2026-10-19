@@ -89,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Zarządzaj drużyną i frekwencją w niższych ligach',
+                      'Zarządzaj drużyną i frekwencją',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../../../data/datasources/api_client.dart';
+import '../../../data/repositories/auth_repository.dart';
 import '../dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -9,6 +12,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final AuthRepository _authRepository = AuthRepository();
+
   // Klucz formularza do walidacji pól
   final _formKey = GlobalKey<FormState>();
 
@@ -16,54 +21,61 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Wybrana rola domyślna
-  String _selectedRole = 'Zawodnik';
-
   bool _isLoading = false;
-  bool _obscurePassword = true;
 
   // Zmień zawartość metody _handleLogin w pliku login_screen.dart
 
   // Zaktualizowana metoda _handleLogin w login_screen.dart
 
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       final email = _emailController.text.trim().toLowerCase();
       final password = _passwordController.text;
-
-      // Dane dostępowe dla Trenera
-      const String coachEmail = 'admin';
-      const String coachPassword = 'admin';
-
-      String userRole = 'Zawodnik';
-
-      // Jeśli podano e-mail trenera, weryfikujemy jego hasło
-      if (email == coachEmail) {
-        if (password != coachPassword) {
-          _showErrorSnackBar('Nieprawidłowe hasło dla konta Trenera.');
-          return;
-        }
-        userRole = 'Trener';
-      }
 
       setState(() {
         _isLoading = true;
       });
 
-      Future.delayed(const Duration(seconds: 1), () {
-        if (!mounted) return;
-
+      try {
+        final user = await _authRepository.login(
+          email: email,
+          password: password,
+        );
         setState(() {
           _isLoading = false;
         });
 
-        // Przejście do Dashboardu z automatycznie wyznaczoną rolą
+        if (!mounted) return;
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => DashboardScreen(userRole: userRole),
+            builder: (context) => DashboardScreen(
+              userRole: user.role == 'coach' ? 'Trener' : 'Zawodnik',
+            ),
           ),
         );
-      });
+      } on ApiException catch (error) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorSnackBar(error.message);
+      } on http.ClientException {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorSnackBar(
+          'Nie można połączyć się z serwerem. Sprawdź, czy backend działa.',
+        );
+      } on FormatException {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorSnackBar(
+          'Nie można połączyć się z serwerem. Sprawdź, czy backend działa.',
+        );
+      }
     }
   }
 
@@ -152,7 +164,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           return null;
                         }
                         if (value == null || value.isEmpty || !value.contains('@')) {
-                          cache:
                           return 'Wprowadź poprawny adres e-mail';
                         }
                         return null;

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../data/datasources/api_client.dart';
+import '../../data/models/dashboard_models.dart';
+import '../../data/repositories/auth_repository.dart';
+import '../../data/repositories/dashboard_repository.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String userRole;
@@ -11,6 +15,45 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
+  final DashboardRepository _dashboardRepository = DashboardRepository();
+  final AuthRepository _authRepository = AuthRepository();
+  List<EventModel> _events = [];
+  List<TeamMemberModel> _teamMembers = [];
+  bool _isLoading = true;
+  String? _loadError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    try {
+      final results = await Future.wait([
+        _dashboardRepository.fetchEvents(),
+        _dashboardRepository.fetchTeamMembers(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _events = results[0] as List<EventModel>;
+        _teamMembers = results[1] as List<TeamMemberModel>;
+        _isLoading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _loadError = error.message;
+      });
+    } on FormatException {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _loadError = 'Serwer zwrócił nieprawidłowe dane.';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +83,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Wyloguj',
-            onPressed: () {
-              // Powrót do ekranu logowania
+            onPressed: () async {
+              await _authRepository.logout();
+              if (!context.mounted) return;
               Navigator.of(context).pop();
             },
           ),
@@ -82,6 +126,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // WIDOK 1: Terminarz i Wydarzenia
   Widget _buildHomeScreen(bool isCoach) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(_loadError!, textAlign: TextAlign.center),
+        ),
+      );
+    }
+    final nextEvent = _events.isEmpty ? null : _events.first;
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
@@ -98,7 +154,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 8),
-                const Text('LKS B-Klasa vs Orzeł II (Niedziela, 15:00)'),
+                Text(
+                  nextEvent == null
+                      ? 'Brak zaplanowanych wydarzeń'
+                      : '${nextEvent.title} (${nextEvent.startsAt})',
+                ),
                 const SizedBox(height: 12),
                 if (!isCoach)
                   ElevatedButton.icon(
@@ -157,6 +217,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // WIDOK 3: Raporty / Kadra
   Widget _buildTeamScreen(bool isCoach) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadError != null) {
+      return Center(child: Text(_loadError!));
+    }
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
@@ -165,16 +231,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        ListTile(
-          leading: const CircleAvatar(child: Text('JP')),
-          title: const Text('Jan Kowalski'),
-          subtitle: Text(isCoach ? 'Nieobecny: Kontuzja kolana (L3)' : 'Obecny'),
-          trailing: isCoach ? const Icon(Icons.lock, color: Colors.red) : null,
-        ),
-        ListTile(
-          leading: const CircleAvatar(child: Text('AN')),
-          title: const Text('Adam Nowak'),
-          subtitle: Text(isCoach ? 'Nieobecny: Praca (Druga zmiana)' : 'Obecny'),
+        ..._teamMembers.map(
+          (member) => ListTile(
+            leading: CircleAvatar(child: Text(member.name.substring(0, 1))),
+            title: Text(member.name),
+            subtitle: Text(
+              member.availability == 'present' ? 'Obecny' : 'Nieobecny',
+            ),
+            trailing: isCoach && member.availability != 'present'
+                ? const Icon(Icons.lock, color: Colors.red)
+                : null,
+          ),
         ),
       ],
     );

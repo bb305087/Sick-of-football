@@ -33,6 +33,11 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Python mock backend
+backend/.venv/
+backend/**/__pycache__/
+backend/.pytest_cache/
+
 # Symbolication related
 app.*.symbols
 

@@ -1,31 +1,35 @@
-# Mock backend
+# PostgreSQL backend
 
-FastAPI backend for the Sick of Football Flutter application. The demo
-repository is in-memory for local development; its authentication and data
-boundaries mirror the planned PostgreSQL deployment.
+FastAPI backend for the Sick of Football Flutter application. Persistence is
+PostgreSQL 16 through SQLAlchemy 2 async and asyncpg. Alembic owns the schema;
+the application never falls back to in-memory persistence.
 
 ## Requirements
 
 - Python 3.11+
-- `argon2-cffi` and `cryptography`
+- PostgreSQL 16 (or `docker compose up db`)
+- Python 3.12+
 
 ## Run locally
 
-From the repository root:
+From `backend`:
 
 ```powershell
 cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-$env:SICK_OF_FOOTBALL_JWT_SECRET = "use-at-least-32-random-characters"
-$env:SICK_OF_FOOTBALL_DATA_KEY = [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+Copy-Item .env.example .env
+# Fill DATABASE_URL, SICK_OF_FOOTBALL_JWT_SECRET and
+# SICK_OF_FOOTBALL_DATA_ENCRYPTION_KEYS with generated values.
+alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Never use the development defaults in a deployed environment. Access tokens
-are short-lived JWTs without role or club claims. Refresh tokens are opaque,
-hashed at rest, rotated on every use, and reuse revokes their entire family.
+Access tokens are short-lived JWTs without role or club claims. Refresh tokens
+are opaque, hashed at rest, rotated on every use, and reuse revokes their
+entire family. Integration tests require `DATABASE_URL` and are skipped when
+PostgreSQL is unavailable.
 
 The API documentation is available at http://127.0.0.1:8000/docs.
 

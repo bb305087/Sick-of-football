@@ -1,3 +1,10 @@
+import os
+
+import pytest
+
+if not os.getenv("DATABASE_URL"):
+    pytest.skip("PostgreSQL integration tests require DATABASE_URL", allow_module_level=True)
+
 from fastapi.testclient import TestClient
 
 from app.main import app

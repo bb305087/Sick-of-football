@@ -7,7 +7,7 @@ import '../../data/repositories/dashboard_repository.dart';
 class DashboardScreen extends StatefulWidget {
   final String userRole;
 
-  const DashboardScreen({Key? key, required this.userRole}) : super(key: key);
+  const DashboardScreen({super.key, required this.userRole});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();

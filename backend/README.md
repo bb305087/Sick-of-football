@@ -1,12 +1,13 @@
 # Mock backend
 
-Development-only FastAPI backend for the Sick of Football Flutter application.
-The current implementation uses in-memory data so it can be replaced by a
-PostgreSQL repository without changing the API used by the app.
+FastAPI backend for the Sick of Football Flutter application. The demo
+repository is in-memory for local development; its authentication and data
+boundaries mirror the planned PostgreSQL deployment.
 
 ## Requirements
 
 - Python 3.11+
+- `argon2-cffi` and `cryptography`
 
 ## Run locally
 
@@ -17,9 +18,14 @@ cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-$env:SICK_OF_FOOTBALL_JWT_SECRET = "replace-this-for-local-development"
+$env:SICK_OF_FOOTBALL_JWT_SECRET = "use-at-least-32-random-characters"
+$env:SICK_OF_FOOTBALL_DATA_KEY = [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+Never use the development defaults in a deployed environment. Access tokens
+are short-lived JWTs without role or club claims. Refresh tokens are opaque,
+hashed at rest, rotated on every use, and reuse revokes their entire family.
 
 The API documentation is available at http://127.0.0.1:8000/docs.
 

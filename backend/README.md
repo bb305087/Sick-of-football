@@ -33,6 +33,9 @@ PostgreSQL is unavailable.
 
 The API documentation is available at http://127.0.0.1:8000/docs.
 
+The versioned API is exposed below `/api/v1`. The previous `/api` endpoints
+remain available for compatibility with the current Flutter client.
+
 ## Test accounts
 
 | Email | Password | Role |
@@ -42,6 +45,19 @@ The API documentation is available at http://127.0.0.1:8000/docs.
 
 ## Main endpoints
 
+- `GET /api/v1/health`
+- `POST /api/v1/auth/register-coach`
+- `POST /api/v1/auth/register-player`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/users/me`
+- `GET /api/v1/club`
+- `GET /api/v1/events`
+- `PUT /api/v1/events/{event_id}/availability`
+- `GET /api/v1/medical-reports` (coach only)
+- `GET /api/v1/tactics`
+- `POST /api/v1/devices`
 - `POST /api/auth/login`
 - `POST /api/auth/refresh`
 - `GET /api/auth/me`

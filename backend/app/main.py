@@ -73,9 +73,6 @@ async def security_middleware(request: Request, call_next):
     request_id = request.headers.get("x-request-id") or str(uuid4())
     if request.headers.get("content-length") and int(request.headers["content-length"]) > 1_048_576:
         return Response("request too large", status_code=413, headers={"X-Request-ID": request_id})
-    if request.url.path.startswith("/api/v1/"):
-        request.scope["path"] = "/api" + request.url.path[7:]
-        request.scope["raw_path"] = request.scope["path"].encode()
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -376,3 +373,8 @@ async def delete_device(token: str, user: Annotated[User, Depends(get_current_us
                                                            DeviceToken.user_id == user.id))
     await db.commit()
     return Response(status_code=204)
+
+
+from .api.v1 import router as v1_router
+
+app.include_router(v1_router)

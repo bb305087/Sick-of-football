@@ -19,6 +19,8 @@ class Event(UUIDPrimaryKey, CreatedAt, Base):
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     location: Mapped[str | None] = mapped_column(String(200))
+    opponent: Mapped[str | None] = mapped_column(String(120))
+    notes: Mapped[str | None] = mapped_column(String(5000))
     created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 class Availability(UUIDPrimaryKey, CreatedAt, Base):
     __tablename__ = "availabilities"

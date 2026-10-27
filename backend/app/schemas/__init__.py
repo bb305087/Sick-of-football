@@ -49,3 +49,33 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user: UserOut | None = None
+
+class RegisterIn(InputModel):
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=8, max_length=128)
+    full_name: str = Field(min_length=1, max_length=100)
+    invitation_token: str | None = Field(default=None, min_length=20, max_length=512)
+
+class PasswordChangeIn(InputModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+class InvitationCreateIn(InputModel):
+    max_uses: int = Field(default=1, ge=1, le=20)
+    expires_in_days: int = Field(default=7, ge=1, le=30)
+
+class InvitationOut(BaseModel):
+    token: str
+    expires_at: datetime
+    max_uses: int
+
+class DeviceTokenIn(InputModel):
+    fcm_token: str = Field(min_length=1, max_length=4096)
+    platform: str = Field(min_length=1, max_length=20)
+
+class MedicalReportIn(InputModel):
+    player_id: UUID
+    diagnosis: str = Field(min_length=1, max_length=200)
+    details: str | None = Field(default=None, max_length=10000)
+    occurred_on: datetime | None = None
+    cleared_on: datetime | None = None

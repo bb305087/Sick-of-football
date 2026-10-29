@@ -11,5 +11,7 @@ class DeviceToken(UUIDPrimaryKey, CreatedAt, Base):
     __tablename__ = "device_tokens"
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     fcm_token: Mapped[str] = mapped_column(String, unique=True)
-    platform: Mapped[Platform] = mapped_column(Enum(Platform, name="device_platform"))
+    platform: Mapped[Platform] = mapped_column(
+        Enum(Platform, name="device_platform", native_enum=False)
+    )
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

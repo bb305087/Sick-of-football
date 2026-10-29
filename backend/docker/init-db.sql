@@ -8,6 +8,7 @@ DO $$ BEGIN
 END $$;
 GRANT CONNECT ON DATABASE sof TO sof_migrator, sof_app;
 GRANT USAGE ON SCHEMA public TO sof_migrator, sof_app;
+GRANT CREATE ON SCHEMA public TO sof_migrator;
 ALTER DEFAULT PRIVILEGES FOR ROLE sof_migrator IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO sof_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE sof_migrator IN SCHEMA public

@@ -14,7 +14,9 @@ class User(UUIDPrimaryKey, CreatedAt, Base):
     email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    role: Mapped[Role] = mapped_column(Enum(Role, name="user_role"), nullable=False)
+    role: Mapped[Role] = mapped_column(
+        Enum(Role, name="user_role", native_enum=False), nullable=False
+    )
     club_id: Mapped[UUID | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"))
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
     failed_login_attempts: Mapped[int] = mapped_column(Integer, server_default=text("0"))

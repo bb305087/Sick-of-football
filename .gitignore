@@ -37,6 +37,7 @@ migrate_working_dir/
 backend/.venv/
 backend/**/__pycache__/
 backend/.pytest_cache/
+backend/.env
 
 # Symbolication related
 app.*.symbols

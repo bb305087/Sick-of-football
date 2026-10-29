@@ -14,7 +14,9 @@ class AvailabilityStatus(str, enum.Enum):
 class Event(UUIDPrimaryKey, CreatedAt, Base):
     __tablename__ = "events"
     club_id: Mapped[UUID] = mapped_column(ForeignKey("clubs.id", ondelete="CASCADE"), index=True)
-    type: Mapped[EventType] = mapped_column(Enum(EventType, name="event_type"))
+    type: Mapped[EventType] = mapped_column(
+        Enum(EventType, name="event_type", native_enum=False)
+    )
     title: Mapped[str] = mapped_column(String(120))
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -27,6 +29,8 @@ class Availability(UUIDPrimaryKey, CreatedAt, Base):
     __table_args__ = (UniqueConstraint("event_id", "user_id"),)
     event_id: Mapped[UUID] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    status: Mapped[AvailabilityStatus] = mapped_column(Enum(AvailabilityStatus, name="availability_status"))
+    status: Mapped[AvailabilityStatus] = mapped_column(
+        Enum(AvailabilityStatus, name="availability_status", native_enum=False)
+    )
     reason_ciphertext: Mapped[bytes | None] = mapped_column(LargeBinary)
     reason_key_id: Mapped[int | None] = mapped_column()

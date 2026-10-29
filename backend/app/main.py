@@ -325,6 +325,7 @@ async def medical_reports(user: Annotated[User, Depends(require_coach)],
                           db: Annotated[AsyncSession, Depends(get_db)]) -> list[dict]:
     rows = (await db.scalars(select(MedicalReport).where(MedicalReport.club_id == user.club_id))).all()
     return [{"id": str(r.id), "player_id": str(r.player_id), "diagnosis": r.diagnosis,
+             "reason": r.diagnosis,
              "details": r.details, "occurred_on": r.occurred_on, "cleared_on": r.cleared_on} for r in rows]
 
 @app.post("/api/medical-reports", status_code=201)

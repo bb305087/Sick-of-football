@@ -6,11 +6,9 @@ class AuthRepository {
   final ApiClient _apiClient;
   final SecureStorageService _storage;
 
-  AuthRepository({
-    ApiClient? apiClient,
-    SecureStorageService? storage,
-  })  : _apiClient = apiClient ?? ApiClient(),
-        _storage = storage ?? SecureStorageService();
+  AuthRepository({ApiClient? apiClient, SecureStorageService? storage})
+    : _apiClient = apiClient ?? ApiClient(),
+      _storage = storage ?? SecureStorageService();
 
   Future<UserModel> login({
     required String email,

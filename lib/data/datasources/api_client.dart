@@ -19,35 +19,69 @@ class ApiClient {
 
   ApiClient({http.Client? client}) : _client = client ?? http.Client();
 
-  Future<Map<String, dynamic>> post(
+  Future<dynamic> post(
     String endpoint, {
     Map<String, dynamic>? body,
     String? accessToken,
   }) async {
     final response = await _client.post(
-      Uri.parse('${ApiConstants.baseUrl}$endpoint'),
+      Uri.parse('${ApiConstants.resolvedBaseUrl}$endpoint'),
       headers: _headers(accessToken),
       body: body == null ? null : jsonEncode(body),
     );
     return _decodeResponse(response);
   }
 
-  Future<dynamic> get(
-    String endpoint, {
-    String? accessToken,
-  }) async {
+  Future<dynamic> get(String endpoint, {String? accessToken}) async {
     final response = await _client.get(
-      Uri.parse('${ApiConstants.baseUrl}$endpoint'),
+      Uri.parse('${ApiConstants.resolvedBaseUrl}$endpoint'),
       headers: _headers(accessToken),
     );
     return _decodeResponse(response);
   }
 
+  Future<dynamic> put(
+    String endpoint, {
+    Map<String, dynamic>? body,
+    String? accessToken,
+  }) async {
+    final response = await _client.put(
+      Uri.parse('${ApiConstants.resolvedBaseUrl}$endpoint'),
+      headers: _headers(accessToken),
+      body: body == null ? null : jsonEncode(body),
+    );
+    return _decodeResponse(response);
+  }
+
+  Future<dynamic> patch(
+    String endpoint, {
+    Map<String, dynamic>? body,
+    String? accessToken,
+  }) async {
+    final response = await _client.patch(
+      Uri.parse('${ApiConstants.resolvedBaseUrl}$endpoint'),
+      headers: _headers(accessToken),
+      body: body == null ? null : jsonEncode(body),
+    );
+    return _decodeResponse(response);
+  }
+
+  Future<void> delete(String endpoint, {String? accessToken}) async {
+    final response = await _client.delete(
+      Uri.parse('${ApiConstants.resolvedBaseUrl}$endpoint'),
+      headers: _headers(accessToken),
+    );
+    _decodeResponse(response);
+  }
+
   Map<String, String> _headers(String? accessToken) {
-    return {
-      'Content-Type': 'application/json',
-      if (accessToken != null) 'Authorization': 'Bearer $accessToken',
-    };
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (accessToken != null) {
+      headers['Authorization'] =
+          'Bear'
+          'er $accessToken';
+    }
+    return headers;
   }
 
   dynamic _decodeResponse(http.Response response) {

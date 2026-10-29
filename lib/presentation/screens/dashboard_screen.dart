@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../data/datasources/api_client.dart';
 import '../../data/models/dashboard_models.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -7,7 +8,7 @@ import '../../data/repositories/dashboard_repository.dart';
 class DashboardScreen extends StatefulWidget {
   final String userRole;
 
-  const DashboardScreen({Key? key, required this.userRole}) : super(key: key);
+  const DashboardScreen({super.key, required this.userRole});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -19,6 +20,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final AuthRepository _authRepository = AuthRepository();
   List<EventModel> _events = [];
   List<TeamMemberModel> _teamMembers = [];
+  List<TacticModel> _tactics = [];
+  List<MedicalReportModel> _medicalReports = [];
   bool _isLoading = true;
   String? _loadError;
 
@@ -30,14 +33,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadDashboardData() async {
     try {
-      final results = await Future.wait([
+      final requests = <Future<dynamic>>[
         _dashboardRepository.fetchEvents(),
         _dashboardRepository.fetchTeamMembers(),
-      ]);
+        _dashboardRepository.fetchTactics(),
+      ];
+      if (widget.userRole == 'Trener') {
+        requests.add(_dashboardRepository.fetchMedicalReports());
+      }
+      final results = await Future.wait(requests);
       if (!mounted) return;
       setState(() {
         _events = results[0] as List<EventModel>;
         _teamMembers = results[1] as List<TeamMemberModel>;
+        _tactics = results[2] as List<TacticModel>;
+        if (results.length > 3) {
+          _medicalReports = results[3] as List<MedicalReportModel>;
+        }
         _isLoading = false;
       });
     } on ApiException catch (error) {
@@ -162,21 +174,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 12),
                 if (!isCoach)
                   ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    onPressed: () {
-                      _showPresenceDialog(context);
-                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                    onPressed: nextEvent == null
+                        ? null
+                        : () => _showPresenceDialog(context, nextEvent.id),
                     icon: const Icon(Icons.check, color: Colors.white),
-                    label: const Text('Zgłoś obecność / absencję', style: TextStyle(color: Colors.white)),
+                    label: const Text(
+                      'Zgłoś obecność / absencję',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   )
                 else
-                  const Text(' Zgłoszonych zawodników: 14/18', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                  const Text(
+                    ' Zgłoszonych zawodników: 14/18',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 16),
-        const Text('Ostatnie powiadomienia', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        const Text(
+          'Ostatnie powiadomienia',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         const ListTile(
           leading: Icon(Icons.fitness_center, color: Colors.green),
           title: Text('Trening: Wtorek 18:30'),
@@ -188,30 +214,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // WIDOK 2: Taktyka
   Widget _buildTacticsScreen(bool isCoach) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.developer_board, size: 80, color: Colors.green),
-            const SizedBox(height: 16),
-            Text(
-              isCoach ? 'Panel Tworzenia Taktyki (Dla Trenera)' : 'Udostępniona Taktyka na Mecz',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isCoach
-                  ? 'Tutaj możesz publikować schematy stałych fragmentów gry i ustalać skład.'
-                  : 'Podgląd schematów i pierwszego składu ustalonego przez trenera.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ],
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_tactics.isEmpty) {
+      return Center(
+        child: Text(
+          isCoach
+              ? 'Brak zapisanych taktyk.'
+              : 'Trener nie opublikował jeszcze taktyki.',
         ),
-      ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _tactics.length,
+      itemBuilder: (context, index) {
+        final tactic = _tactics[index];
+        return Card(
+          child: ExpansionTile(
+            leading: const Icon(Icons.sports_soccer, color: Colors.green),
+            title: Text(tactic.title),
+            subtitle: Text(tactic.published ? 'Opublikowana' : 'Szkic'),
+            children: [
+              if (tactic.content.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(tactic.content),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -231,14 +266,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
+        if (isCoach && _medicalReports.isNotEmpty)
+          ..._medicalReports.map(
+            (report) => ListTile(
+              leading: const Icon(Icons.medical_services, color: Colors.red),
+              title: Text(report.diagnosis),
+              subtitle: Text(report.details ?? 'Brak dodatkowych informacji'),
+            ),
+          ),
         ..._teamMembers.map(
           (member) => ListTile(
             leading: CircleAvatar(child: Text(member.name.substring(0, 1))),
             title: Text(member.name),
             subtitle: Text(
-              member.availability == 'present' ? 'Obecny' : 'Nieobecny',
+              member.availability == 'present'
+                  ? 'Obecny'
+                  : member.availability == 'unknown'
+                  ? 'Brak danych o obecności'
+                  : 'Nieobecny',
             ),
-            trailing: isCoach && member.availability != 'present'
+            trailing:
+                isCoach &&
+                    member.availability != 'present' &&
+                    member.availability != 'unknown'
                 ? const Icon(Icons.lock, color: Colors.red)
                 : null,
           ),
@@ -255,7 +305,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           const CircleAvatar(radius: 40, child: Icon(Icons.person, size: 40)),
           const SizedBox(height: 16),
-          Text('Zalogowany jako: ${widget.userRole}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            'Zalogowany jako: ${widget.userRole}',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
           const Text('Wersja aplikacji: 1.0.0-dev'),
         ],
@@ -264,7 +317,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // Okienko zgłaszania nieobecności przez zawodnika
-  void _showPresenceDialog(BuildContext context) {
+  void _showPresenceDialog(BuildContext context, String eventId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -275,21 +328,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ListTile(
               leading: const Icon(Icons.check_circle, color: Colors.green),
               title: const Text('Będę obecny'),
-              onTap: () => Navigator.pop(context),
+              onTap: () => _submitAttendance(context, eventId, 'present'),
             ),
             ListTile(
               leading: const Icon(Icons.work, color: Colors.orange),
               title: const Text('Nieobecny: Praca'),
-              onTap: () => Navigator.pop(context),
+              onTap: () => _submitAttendance(context, eventId, 'work', 'Praca'),
             ),
             ListTile(
               leading: const Icon(Icons.healing, color: Colors.red),
               title: const Text('Nieobecny: Kontuzja / Choroba'),
-              onTap: () => Navigator.pop(context),
+              onTap: () => _submitAttendance(
+                context,
+                eventId,
+                'injury_illness',
+                'Kontuzja / Choroba',
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _submitAttendance(
+    BuildContext context,
+    String eventId,
+    String status, [
+    String? reason,
+  ]) async {
+    Navigator.pop(context);
+    try {
+      await _dashboardRepository.setAttendance(
+        eventId: eventId,
+        status: status,
+        reason: reason,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Status obecności został zapisany.')),
+      );
+    } on ApiException catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+      );
+    }
   }
 }

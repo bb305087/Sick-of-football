@@ -64,9 +64,15 @@ app.state.limiter = limiter
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     return Response("rate limit exceeded", status_code=429)
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost"],
-                   allow_credentials=False, allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                   allow_headers=["Authorization", "Content-Type"])
+app.add_middleware(
+    CORSMiddleware,
+    # Temporary development setting for Flutter Web's changing local port.
+    # Restrict this to known frontend origins before production deployment.
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):

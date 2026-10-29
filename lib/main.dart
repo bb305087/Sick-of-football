@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'presentation/screens/auth/login_screen.dart';
 
 void main() {
@@ -6,17 +7,14 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Sick_of_football',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        useMaterial3: true,
-      ),
+      theme: ThemeData(primarySwatch: Colors.green, useMaterial3: true),
       home: const LoginScreen(),
     );
   }

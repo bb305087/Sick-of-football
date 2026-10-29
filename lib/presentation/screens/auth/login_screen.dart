@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import '../../../data/datasources/api_client.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -79,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-// Pomocnicza metoda do wyświetlania komunikatów o błędzie
+  // Pomocnicza metoda do wyświetlania komunikatów o błędzie
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -137,10 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text(
                       'Zarządzaj drużyną i frekwencją',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     const SizedBox(height: 24),
 
@@ -163,7 +161,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (value == coachEmail) {
                           return null;
                         }
-                        if (value == null || value.isEmpty || !value.contains('@')) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            !value.contains('@')) {
                           return 'Wprowadź poprawny adres e-mail';
                         }
                         return null;
@@ -185,7 +185,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         }
 
                         // Pobieramy aktualnie wpisany e-mail z kontrolera
-                        final email = _emailController.text.trim().toLowerCase();
+                        final email = _emailController.text
+                            .trim()
+                            .toLowerCase();
                         const String coachEmail = 'admin';
 
                         // Jeśli to konto trenera, pomijamy sprawdzanie długości (pozwalamy na krótkie hasło do testów)
@@ -216,14 +218,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         onPressed: _isLoading ? null : _handleLogin,
                         child: _isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
                             : const Text(
-                          'Zaloguj się',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                                'Zaloguj się',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 16),

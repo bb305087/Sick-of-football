@@ -1,5 +1,21 @@
+import 'package:flutter/foundation.dart';
+
 class ApiConstants {
-  // Tutaj w przyszłości znajdzie się adres IP / URL do backendu w FastAPI
-  static const String baseUrl = 'http://localhost:8000'; // Domyślny localhost dla emulatora Androida
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: '',
+  );
   static const String loginEndpoint = '/api/auth/login';
+
+  static String get resolvedBaseUrl {
+    if (baseUrl.isNotEmpty) {
+      return baseUrl;
+    }
+    if (kIsWeb) {
+      return 'http://127.0.0.1:8000';
+    }
+    return defaultTargetPlatform == TargetPlatform.android
+        ? 'http://10.0.2.2:8000'
+        : 'http://127.0.0.1:8000';
+  }
 }

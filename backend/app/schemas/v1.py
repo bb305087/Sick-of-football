@@ -126,6 +126,7 @@ class TacticIn(StrictInput):
     description: str | None = Field(default=None, max_length=5000)
     lineup: list[dict[str, Any]] = Field(default_factory=list, max_length=25)
     set_pieces: list[dict[str, Any]] = Field(default_factory=list, max_length=20)
+    published: bool = False
 
 
 class TacticUpdate(TacticIn):

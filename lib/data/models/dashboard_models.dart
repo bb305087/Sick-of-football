@@ -52,20 +52,31 @@ class TacticModel {
   final String title;
   final String content;
   final bool published;
+  final String? formation;
+  final List<Map<String, dynamic>> lineup;
+  final int version;
 
   const TacticModel({
     required this.id,
     required this.title,
     required this.content,
     required this.published,
+    required this.formation,
+    required this.lineup,
+    required this.version,
   });
 
   factory TacticModel.fromJson(Map<String, dynamic> json) {
     return TacticModel(
       id: json['id'].toString(),
-      title: json['title'] as String,
+      title: (json['title'] ?? '') as String,
       content: (json['content'] ?? json['description'] ?? '') as String,
       published: (json['published'] ?? json['is_published'] ?? false) as bool,
+      formation: json['formation'] as String?,
+      lineup: (json['lineup'] as List<dynamic>? ?? const [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList(),
+      version: (json['version'] as num?)?.toInt() ?? 1,
     );
   }
 }

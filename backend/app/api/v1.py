@@ -552,7 +552,9 @@ async def create_tactic(
 ) -> dict:
     if payload.event_id is not None:
         await get_event_or_404(db, payload.event_id, user.club_id)
-    tactic = Tactic(**payload.model_dump(), club_id=user.club_id, created_by=user.id)
+    values = payload.model_dump()
+    values["is_published"] = values.pop("published")
+    tactic = Tactic(**values, club_id=user.club_id, created_by=user.id)
     db.add(tactic)
     await db.flush()
     await audit(db, "tactic.create", actor_id=user.id, club_id=user.club_id, resource_id=tactic.id)
@@ -571,12 +573,27 @@ async def update_tactic(
         raise HTTPException(409, "version_conflict")
     if payload.event_id is not None:
         await get_event_or_404(db, payload.event_id, user.club_id)
-    for key, value in payload.model_dump(exclude={"expected_version"}).items():
+    values = payload.model_dump(exclude={"expected_version"})
+    values["is_published"] = values.pop("published")
+    for key, value in values.items():
         setattr(tactic, key, value)
     tactic.version += 1
     await db.commit()
     await db.refresh(tactic)
     return tactic_out(tactic)
+
+
+@router.delete("/tactics/{tactic_id}", status_code=204)
+async def delete_tactic(
+    tactic_id: UUID, user: Annotated[User, Depends(require_coach)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    tactic = await get_tactic_or_404(db, tactic_id, user.club_id)
+    await db.delete(tactic)
+    await audit(db, "tactic.delete", actor_id=user.id, club_id=user.club_id,
+                resource_id=tactic_id)
+    await db.commit()
+    return Response(status_code=204)
 
 
 @router.post("/devices", status_code=201)

@@ -4,6 +4,8 @@ import '../../data/datasources/api_client.dart';
 import '../../data/models/dashboard_models.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
+import 'tactics/tactic_detail_screen.dart';
+import 'tactics/tactic_editor_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String userRole;
@@ -216,38 +218,156 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildTacticsScreen(bool isCoach) {
     if (_isLoading) return const Center(child: CircularProgressIndicator());
     if (_tactics.isEmpty) {
-      return Center(
-        child: Text(
-          isCoach
-              ? 'Brak zapisanych taktyk.'
-              : 'Trener nie opublikował jeszcze taktyki.',
-        ),
+      return Stack(
+        children: [
+          Center(
+            child: Text(
+              isCoach
+                  ? 'Brak zapisanych taktyk.'
+                  : 'Trener nie opublikował jeszcze taktyki.',
+            ),
+          ),
+          if (isCoach) _buildCreateTacticButton(),
+        ],
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _tactics.length,
-      itemBuilder: (context, index) {
-        final tactic = _tactics[index];
-        return Card(
-          child: ExpansionTile(
-            leading: const Icon(Icons.sports_soccer, color: Colors.green),
-            title: Text(tactic.title),
-            subtitle: Text(tactic.published ? 'Opublikowana' : 'Szkic'),
-            children: [
-              if (tactic.content.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(tactic.content),
-                  ),
+    return Stack(
+      children: [
+        ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: _tactics.length,
+          itemBuilder: (context, index) {
+            final tactic = _tactics[index];
+            return Card(
+              child: ExpansionTile(
+                leading: const Icon(Icons.sports_soccer, color: Colors.green),
+                title: Text(tactic.title),
+                subtitle: Text(tactic.published ? 'Opublikowana' : 'Szkic'),
+                trailing: IconButton(
+                  tooltip: 'Otwórz taktykę',
+                  icon: const Icon(Icons.open_in_new),
+                  onPressed: () => _openTacticDetails(tactic),
                 ),
-            ],
-          ),
-        );
-      },
+                children: [
+                  if (tactic.content.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(tactic.content),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+        if (isCoach) _buildCreateTacticButton(),
+      ],
     );
+  }
+
+  Future<void> _openTacticDetails(TacticModel tactic) {
+    return Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TacticDetailScreen(
+          tactic: tactic,
+          players: _teamMembers,
+          canDelete: widget.userRole == 'Trener',
+          onDelete: () => _deleteTactic(tactic),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteTactic(TacticModel tactic) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Usuń taktykę?'),
+        content: Text('Taktyka „${tactic.title}” zostanie usunięta.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Usuń'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await _dashboardRepository.deleteTactic(tactic.id);
+      if (!mounted) return;
+      setState(() => _tactics.removeWhere((item) => item.id == tactic.id));
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Taktyka została usunięta.')),
+      );
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Widget _buildCreateTacticButton() {
+    return Positioned(
+      right: 16,
+      bottom: 16,
+      child: FloatingActionButton.extended(
+        onPressed: _openTacticEditor,
+        icon: const Icon(Icons.add),
+        label: const Text('Nowa taktyka'),
+      ),
+    );
+  }
+
+  Future<void> _openTacticEditor() async {
+    final draft = await Navigator.of(context).push<TacticDraft>(
+      MaterialPageRoute(
+        builder: (_) => TacticEditorScreen(players: _teamMembers),
+      ),
+    );
+    if (!mounted || draft == null) return;
+    await _createTactic(
+      title: draft.title,
+      content: 'Formacja ${draft.formation}',
+      published: draft.published,
+      formation: draft.formation,
+      lineup: draft.lineup,
+    );
+  }
+
+  Future<void> _createTactic({
+    required String title,
+    required String content,
+    required bool published,
+    String formation = '4-3-3',
+    List<Map<String, dynamic>> lineup = const [],
+  }) async {
+    try {
+      final tactic = await _dashboardRepository.createSquadTactic(
+        title: title,
+        formation: formation,
+        lineup: lineup,
+        published: published,
+      );
+      if (!mounted) return;
+      setState(() => _tactics = [tactic, ..._tactics]);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Taktyka została zapisana.')),
+      );
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+      );
+    }
   }
 
   // WIDOK 3: Raporty / Kadra

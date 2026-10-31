@@ -37,13 +37,64 @@ class DashboardRepository {
 
   Future<List<TacticModel>> fetchTactics() async {
     final token = await _requiredAccessToken();
-    final response = await _apiClient.get('/api/tactics', accessToken: token);
-    final items = response is List
-        ? response
-        : (response as Map<String, dynamic>)['items'];
+    final response = await _apiClient.get(
+      '/api/v1/tactics',
+      accessToken: token,
+    );
+    final items = (response as Map<String, dynamic>)['items'];
     return (items as List<dynamic>)
         .map((item) => TacticModel.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<TacticModel> createTactic({
+    required String title,
+    required String content,
+    required bool published,
+  }) async {
+    final token = await _requiredAccessToken();
+    final response = await _apiClient.post(
+      '/api/v1/tactics',
+      accessToken: token,
+      body: {
+        'title': title,
+        'description': content,
+        'formation': '4-3-3',
+        'lineup': const [],
+      },
+    );
+    return TacticModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<TacticModel> createSquadTactic({
+    required String title,
+    required String formation,
+    required List<Map<String, dynamic>> lineup,
+    required bool published,
+  }) async {
+    final token = await _requiredAccessToken();
+    final response = await _apiClient.post(
+      '/api/v1/tactics',
+      accessToken: token,
+      body: {
+        'title': title,
+        'formation': formation,
+        'lineup': lineup,
+        'description': 'Skład $formation',
+        'published': published,
+      },
+    );
+    return TacticModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<void> deleteTactic(String tacticId) async {
+    final token = await _requiredAccessToken();
+    try {
+      await _apiClient.delete('/api/v1/tactics/$tacticId', accessToken: token);
+    } on ApiException catch (error) {
+      if (error.statusCode != 405 && error.statusCode != 404) rethrow;
+      await _apiClient.delete('/api/tactics/$tacticId', accessToken: token);
+    }
   }
 
   Future<List<MedicalReportModel>> fetchMedicalReports() async {

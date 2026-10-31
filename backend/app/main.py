@@ -287,6 +287,15 @@ async def update_tactic(tactic_id: UUID, request: TacticIn,
     await db.commit()
     return {"id": str(tactic.id), **request.model_dump(), "updated_at": tactic.created_at}
 
+@app.delete("/api/tactics/{tactic_id}", status_code=204)
+async def delete_tactic(tactic_id: UUID,
+                        user: Annotated[User, Depends(require_coach)],
+                        db: Annotated[AsyncSession, Depends(get_db)]) -> Response:
+    tactic = await get_tactic_or_404(db, tactic_id, user.club_id)
+    await db.delete(tactic)
+    await db.commit()
+    return Response(status_code=204)
+
 @app.get("/api/team/members")
 async def team_members(user: Annotated[User, Depends(require_club_member)],
                        db: Annotated[AsyncSession, Depends(get_db)]) -> list[dict]:

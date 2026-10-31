@@ -82,21 +82,30 @@ class TacticModel {
 }
 
 class MedicalReportModel {
+  final String? id;
   final String playerId;
   final String diagnosis;
   final String? details;
+  final String? occurredOn;
+  final String? clearedOn;
 
   const MedicalReportModel({
+    this.id,
     required this.playerId,
     required this.diagnosis,
     required this.details,
+    this.occurredOn,
+    this.clearedOn,
   });
 
   factory MedicalReportModel.fromJson(Map<String, dynamic> json) {
     return MedicalReportModel(
+      id: json['id']?.toString(),
       playerId: json['player_id'].toString(),
       diagnosis: (json['diagnosis'] ?? json['reason']) as String,
       details: json['details'] as String?,
+      occurredOn: json['occurred_on']?.toString(),
+      clearedOn: json['cleared_on']?.toString(),
     );
   }
 }

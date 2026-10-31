@@ -130,6 +130,7 @@ Main endpoints include:
 - `GET /api/tactics`
 - `POST /api/tactics` (coach only)
 - `GET /api/medical-reports` (coach only)
+- `DELETE /api/medical-reports/{report_id}` (coach only)
 
 Chronione endpointy wymagaja naglowka `Authorization` z tokenem dostepowym
 w schemacie Bearer. Wersjonowane endpointy sa dostepne pod `/api/v1`; trasy

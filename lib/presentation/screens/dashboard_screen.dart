@@ -6,6 +6,8 @@ import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
 import 'tactics/tactic_detail_screen.dart';
 import 'tactics/tactic_editor_screen.dart';
+import 'player/add_medical_report_screen.dart';
+import 'player/medical_report_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String userRole;
@@ -378,43 +380,99 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_loadError != null) {
       return Center(child: Text(_loadError!));
     }
-    return ListView(
-      padding: const EdgeInsets.all(16.0),
+    return Stack(
       children: [
-        Text(
-          isCoach ? 'Raporty Medyczne i Absencje' : 'Kadra Zespołu',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            Text(
+              isCoach ? 'Raporty Medyczne i Absencje' : 'Kadra Zespołu',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            if (isCoach && _medicalReports.isNotEmpty)
+              ..._medicalReports.map(
+                (report) => ListTile(
+                  leading: const Icon(
+                    Icons.medical_services,
+                    color: Colors.red,
+                  ),
+                  title: Text(report.diagnosis),
+                  subtitle: Text(_playerNameFor(report.playerId)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _openMedicalReport(report),
+                ),
+              ),
+            ..._teamMembers.map(
+              (member) => ListTile(
+                leading: CircleAvatar(child: Text(member.name.substring(0, 1))),
+                title: Text(member.name),
+                subtitle: Text(
+                  member.availability == 'present'
+                      ? 'Obecny'
+                      : member.availability == 'unknown'
+                      ? 'Brak danych o obecności'
+                      : 'Nieobecny',
+                ),
+                trailing:
+                    isCoach &&
+                        member.availability != 'present' &&
+                        member.availability != 'unknown'
+                    ? const Icon(Icons.lock, color: Colors.red)
+                    : null,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
-        if (isCoach && _medicalReports.isNotEmpty)
-          ..._medicalReports.map(
-            (report) => ListTile(
-              leading: const Icon(Icons.medical_services, color: Colors.red),
-              title: Text(report.diagnosis),
-              subtitle: Text(report.details ?? 'Brak dodatkowych informacji'),
+        if (isCoach)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              onPressed: _openMedicalReportForm,
+              icon: const Icon(Icons.add),
+              label: const Text('Dodaj raport'),
             ),
           ),
-        ..._teamMembers.map(
-          (member) => ListTile(
-            leading: CircleAvatar(child: Text(member.name.substring(0, 1))),
-            title: Text(member.name),
-            subtitle: Text(
-              member.availability == 'present'
-                  ? 'Obecny'
-                  : member.availability == 'unknown'
-                  ? 'Brak danych o obecności'
-                  : 'Nieobecny',
-            ),
-            trailing:
-                isCoach &&
-                    member.availability != 'present' &&
-                    member.availability != 'unknown'
-                ? const Icon(Icons.lock, color: Colors.red)
-                : null,
-          ),
-        ),
       ],
     );
+  }
+
+  String _playerNameFor(String playerId) {
+    final player = _teamMembers.where((member) => member.id == playerId);
+    return player.isEmpty ? 'Nieznany zawodnik' : player.first.name;
+  }
+
+  Future<void> _openMedicalReport(MedicalReportModel report) async {
+    final deleted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => MedicalReportDetailScreen(
+          report: report,
+          playerName: _playerNameFor(report.playerId),
+          onDelete: () => _dashboardRepository.deleteMedicalReport(report.id!),
+        ),
+      ),
+    );
+    if (deleted == true && mounted) {
+      setState(() {
+        _medicalReports.removeWhere((item) => item.id == report.id);
+      });
+    }
+  }
+
+  Future<void> _openMedicalReportForm() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const AddMedicalReportScreen()),
+    );
+    if (created != true || !mounted) return;
+    try {
+      final reports = await _dashboardRepository.fetchMedicalReports();
+      if (mounted) setState(() => _medicalReports = reports);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    }
   }
 
   // WIDOK 4: Profil

@@ -37,12 +37,21 @@ class DashboardRepository {
 
   Future<List<TacticModel>> fetchTactics() async {
     final token = await _requiredAccessToken();
-    final response = await _apiClient.get(
-      '/api/v1/tactics',
-      accessToken: token,
-    );
-    final items = (response as Map<String, dynamic>)['items'];
-    return (items as List<dynamic>)
+    dynamic response;
+    try {
+      response = await _apiClient.get('/api/tactics', accessToken: token);
+    } on ApiException catch (error) {
+      if (error.statusCode != 404) rethrow;
+      response = await _apiClient.get('/api/v1/tactics', accessToken: token);
+    }
+
+    final items = response is List
+        ? response
+        : (response as Map<String, dynamic>)['items'];
+    if (items is! List<dynamic>) {
+      throw const FormatException('Nieprawidłowy format listy taktyk.');
+    }
+    return items
         .map((item) => TacticModel.fromJson(item as Map<String, dynamic>))
         .toList();
   }
@@ -108,6 +117,44 @@ class DashboardRepository {
           (item) => MedicalReportModel.fromJson(item as Map<String, dynamic>),
         )
         .toList();
+  }
+
+  Future<MedicalReportModel> createMedicalReport({
+    required String playerId,
+    required String diagnosis,
+    String? details,
+    DateTime? occurredOn,
+    DateTime? clearedOn,
+  }) async {
+    final token = await _requiredAccessToken();
+    final response = await _apiClient.post(
+      '/api/medical-reports',
+      accessToken: token,
+      body: {
+        'player_id': playerId,
+        'diagnosis': diagnosis,
+        if (details != null && details.isNotEmpty) 'details': details,
+        if (occurredOn != null) 'occurred_on': occurredOn.toIso8601String(),
+        if (clearedOn != null) 'cleared_on': clearedOn.toIso8601String(),
+      },
+    );
+    return MedicalReportModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<void> deleteMedicalReport(String reportId) async {
+    final token = await _requiredAccessToken();
+    try {
+      await _apiClient.delete(
+        '/api/medical-reports/$reportId',
+        accessToken: token,
+      );
+    } on ApiException catch (error) {
+      if (error.statusCode != 404) rethrow;
+      await _apiClient.delete(
+        '/api/v1/medical-reports/$reportId',
+        accessToken: token,
+      );
+    }
   }
 
   Future<void> setAttendance({

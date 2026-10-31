@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.db.session import get_db
 from app.main import cipher_from_settings, create_access_token
-from app.models import Availability, Club, DeviceToken, Event, Invitation, Tactic, User
+from app.models import Availability, Club, DeviceToken, Event, Invitation, MedicalReport, Tactic, User
 from app.models.device_token import Platform
 from app.models.event import AvailabilityStatus, EventType
 from app.models.user import Role
@@ -472,6 +472,29 @@ async def medical_reports(
                 detail={"count": len(items), "limit": limit, "offset": offset})
     await db.commit()
     return {"items": items, "limit": limit, "offset": offset}
+
+@router.delete("/medical-reports/{report_id}", status_code=204)
+async def delete_medical_report(
+    report_id: UUID,
+    user: Annotated[User, Depends(require_coach)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    report = await db.scalar(select(MedicalReport).where(
+        MedicalReport.id == report_id,
+        MedicalReport.club_id == user.club_id,
+    ))
+    if report is None:
+        raise HTTPException(404, "medical_report_not_found")
+    await db.delete(report)
+    await audit(
+        db,
+        "medical_report.delete",
+        actor_id=user.id,
+        club_id=user.club_id,
+        resource_id=report_id,
+    )
+    await db.commit()
+    return Response(status_code=204)
 
 
 @router.get("/tactics")

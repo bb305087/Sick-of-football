@@ -300,7 +300,8 @@ async def delete_tactic(tactic_id: UUID,
 async def team_members(user: Annotated[User, Depends(require_club_member)],
                        db: Annotated[AsyncSession, Depends(get_db)]) -> list[dict]:
     rows = (await db.scalars(select(User).where(User.club_id == user.club_id).order_by(User.full_name))).all()
-    return [{"id": str(member.id), "name": member.full_name, "email": member.email}
+    return [{"id": str(member.id), "name": member.full_name, "email": member.email,
+             "role": member.role.value}
             for member in rows]
 
 @app.delete("/api/team/members/{member_id}", status_code=204)
@@ -355,6 +356,18 @@ async def create_medical_report(request: MedicalReportIn, user: Annotated[User, 
                            cleared_on=request.cleared_on.date() if request.cleared_on else None)
     db.add(report); await db.commit(); await db.refresh(report)
     return {"id": str(report.id), "player_id": str(report.player_id), "diagnosis": report.diagnosis}
+
+@app.delete("/api/medical-reports/{report_id}", status_code=204)
+async def delete_medical_report(report_id: UUID, user: Annotated[User, Depends(require_coach)],
+                                db: Annotated[AsyncSession, Depends(get_db)]) -> Response:
+    report = await db.scalar(select(MedicalReport).where(
+        MedicalReport.id == report_id, MedicalReport.club_id == user.club_id,
+    ))
+    if report is None:
+        raise HTTPException(404, "medical_report_not_found")
+    await db.delete(report)
+    await db.commit()
+    return Response(status_code=204)
 
 @app.post("/api/invitations", response_model=InvitationOut, status_code=201)
 async def create_invitation(request: InvitationCreateIn, user: Annotated[User, Depends(require_coach)],

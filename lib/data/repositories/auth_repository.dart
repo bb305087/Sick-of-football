@@ -56,10 +56,8 @@ class AuthRepository {
       'email': email,
       'password': password,
       'full_name': fullName,
+      'invite_token': normalizedInviteToken,
     };
-    if (normalizedInviteToken.isNotEmpty) {
-      body['invite_token'] = normalizedInviteToken;
-    }
     await _apiClient.post('/api/v1/auth/register-player', body: body);
   }
 

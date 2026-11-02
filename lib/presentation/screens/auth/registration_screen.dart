@@ -94,7 +94,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   String? _validateInviteToken(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return null;
+      return 'Wprowadź token zaproszenia';
     }
     if (value.trim().length < 20) {
       return 'Token zaproszenia musi mieć co najmniej 20 znaków';
@@ -211,7 +211,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       TextFormField(
                         controller: _inviteTokenController,
                         decoration: const InputDecoration(
-                          labelText: 'Token zaproszenia (opcjonalnie)',
+                          labelText: 'Token zaproszenia',
                           prefixIcon: Icon(Icons.link),
                           border: OutlineInputBorder(),
                         ),
@@ -260,13 +260,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             ? const CircularProgressIndicator()
                             : const Text('Zarejestruj się'),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      child: const Text('Masz już konto? Zaloguj się'),
                     ),
                   ],
                 ),

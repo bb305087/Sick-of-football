@@ -26,6 +26,43 @@ class AuthRepository {
     return authResponse.user;
   }
 
+  Future<void> registerCoach({
+    required String email,
+    required String password,
+    required String fullName,
+    required String clubName,
+  }) async {
+    await _apiClient.post(
+      '/api/v1/auth/register-coach',
+      body: {
+        'email': email,
+        'password': password,
+        'full_name': fullName,
+        'club_name': clubName,
+      },
+    );
+  }
+
+  Future<void> registerPlayer({
+    required String email,
+    required String password,
+    required String fullName,
+    required String inviteToken,
+  }) async {
+    final normalizedInviteToken = inviteToken.startsWith('bklasa://invite/')
+        ? inviteToken.substring('bklasa://invite/'.length)
+        : inviteToken;
+    final body = <String, dynamic>{
+      'email': email,
+      'password': password,
+      'full_name': fullName,
+    };
+    if (normalizedInviteToken.isNotEmpty) {
+      body['invite_token'] = normalizedInviteToken;
+    }
+    await _apiClient.post('/api/v1/auth/register-player', body: body);
+  }
+
   Future<void> logout() {
     return _storage.clearTokens();
   }

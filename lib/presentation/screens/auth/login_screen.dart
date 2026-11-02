@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../../../data/datasources/api_client.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../dashboard_screen.dart';
+import 'registration_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -23,6 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _showRegistrationSuggestion = false;
 
   // Zmień zawartość metody _handleLogin w pliku login_screen.dart
 
@@ -58,12 +60,14 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
         setState(() {
           _isLoading = false;
+          _showRegistrationSuggestion = error.statusCode == 401;
         });
         _showErrorSnackBar(error.message);
       } on http.ClientException {
         if (!mounted) return;
         setState(() {
           _isLoading = false;
+          _showRegistrationSuggestion = false;
         });
         _showErrorSnackBar(
           'Nie można połączyć się z serwerem. Sprawdź, czy backend działa.',
@@ -72,6 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
         setState(() {
           _isLoading = false;
+          _showRegistrationSuggestion = false;
         });
         _showErrorSnackBar(
           'Nie można połączyć się z serwerem. Sprawdź, czy backend działa.',
@@ -196,8 +201,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         }
 
                         // Standardowa walidacja długości dla pozostałych użytkowników
-                        if (value.length < 8) {
-                          return 'Hasło musi mieć co najmniej 8 znaków';
+                        if (value.length < 12) {
+                          return 'Hasło musi mieć co najmniej 12 znaków';
                         }
 
                         return null;
@@ -231,6 +236,40 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    if (_showRegistrationSuggestion)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.lightGreen[50],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Nie masz jeszcze konta? Zarejestruj się.',
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const RegistrationScreen(),
+                                ),
+                              ),
+                              child: const Text('Rejestracja'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (_showRegistrationSuggestion) const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const RegistrationScreen(),
+                        ),
+                      ),
+                      child: const Text('Nie masz konta? Zarejestruj się'),
+                    ),
 
                     // Opcjonalne wejście na biometrię / link zaproszeniowy
                     TextButton(

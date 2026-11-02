@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../data/datasources/api_client.dart';
 import '../../data/models/dashboard_models.dart';
@@ -390,6 +391,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
+            if (isCoach)
+              OutlinedButton.icon(
+                onPressed: _createInvitation,
+                icon: const Icon(Icons.person_add),
+                label: const Text('Zaproś zawodnika do drużyny'),
+              ),
+            if (isCoach) const SizedBox(height: 8),
             if (isCoach && _medicalReports.isNotEmpty)
               ..._medicalReports.map(
                 (report) => ListTile(
@@ -436,6 +444,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
       ],
     );
+  }
+
+  Future<void> _createInvitation() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final invitation = await _dashboardRepository.createInvitation();
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Link zaproszenia'),
+          content: SelectableText(invitation.deepLink),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await Clipboard.setData(
+                  ClipboardData(text: invitation.deepLink),
+                );
+                if (!context.mounted) return;
+                Navigator.of(context).pop();
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Link zaproszenia skopiowany.')),
+                );
+              },
+              child: const Text('Kopiuj link'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Zamknij'),
+            ),
+          ],
+        ),
+      );
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+      );
+    }
   }
 
   String _playerNameFor(String playerId) {

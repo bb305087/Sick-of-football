@@ -35,6 +35,19 @@ class DashboardRepository {
         .toList();
   }
 
+  Future<InvitationModel> createInvitation({
+    int expiresInHours = 72,
+    int maxUses = 1,
+  }) async {
+    final token = await _requiredAccessToken();
+    final response = await _apiClient.post(
+      '/api/v1/club/invitations',
+      accessToken: token,
+      body: {'expires_in_hours': expiresInHours, 'max_uses': maxUses},
+    );
+    return InvitationModel.fromJson(response as Map<String, dynamic>);
+  }
+
   Future<List<TacticModel>> fetchTactics() async {
     final token = await _requiredAccessToken();
     dynamic response;

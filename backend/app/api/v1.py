@@ -97,22 +97,29 @@ async def register_player(
         validate_password_strength(payload.password, email, payload.full_name)
     except ValueError as exc:
         raise HTTPException(422, "invalid_password") from exc
-    invitation = await db.scalar(select(Invitation).where(
-        Invitation.token_hash == sha256_hex(payload.invite_token),
-    ).with_for_update())
-    now = datetime.now(timezone.utc)
-    if (invitation is None or invitation.revoked_at is not None
-            or invitation.expires_at <= now or invitation.used_count >= invitation.max_uses):
-        raise HTTPException(400, "invalid_invitation")
+    invitation = None
+    if payload.invite_token is not None:
+        invitation = await db.scalar(select(Invitation).where(
+            Invitation.token_hash == sha256_hex(payload.invite_token),
+        ).with_for_update())
+        now = datetime.now(timezone.utc)
+        if (invitation is None or invitation.revoked_at is not None
+                or invitation.expires_at <= now
+                or invitation.used_count >= invitation.max_uses):
+            raise HTTPException(400, "invalid_invitation")
     if await db.scalar(select(User).where(User.email == email)):
         raise HTTPException(409, "email_taken")
-    invitation.used_count += 1
     user = User(email=email, password_hash=await hash_password(payload.password),
-                full_name=payload.full_name, role=Role.PLAYER, club_id=invitation.club_id)
+                full_name=payload.full_name, role=Role.PLAYER,
+                club_id=invitation.club_id if invitation is not None else None)
     db.add(user)
     await db.flush()
-    await audit(db, "invitation.use", actor_id=user.id, club_id=user.club_id,
-                resource_id=invitation.id)
+    if invitation is not None:
+        invitation.used_count += 1
+        await audit(db, "invitation.use", actor_id=user.id, club_id=user.club_id,
+                    resource_id=invitation.id)
+    else:
+        await audit(db, "auth.register", actor_id=user.id)
     await db.commit()
     await db.refresh(user)
     return user_out(user)

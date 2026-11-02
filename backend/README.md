@@ -122,6 +122,8 @@ Main endpoints include:
 
 - `GET /api/health`
 - `POST /api/auth/login`
+- `POST /api/v1/auth/register-coach`
+- `POST /api/v1/auth/register-player`
 - `POST /api/auth/refresh`
 - `GET /api/auth/me`
 - `GET /api/events`

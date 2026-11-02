@@ -109,3 +109,27 @@ class MedicalReportModel {
     );
   }
 }
+
+class InvitationModel {
+  final String token;
+  final String deepLink;
+  final DateTime expiresAt;
+  final int maxUses;
+
+  const InvitationModel({
+    required this.token,
+    required this.deepLink,
+    required this.expiresAt,
+    required this.maxUses,
+  });
+
+  factory InvitationModel.fromJson(Map<String, dynamic> json) {
+    final token = json['token'] as String;
+    return InvitationModel(
+      token: token,
+      deepLink: (json['deep_link'] ?? 'bklasa://invite/$token') as String,
+      expiresAt: DateTime.parse(json['expires_at'].toString()),
+      maxUses: (json['max_uses'] as num?)?.toInt() ?? 1,
+    );
+  }
+}

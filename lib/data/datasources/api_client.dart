@@ -92,10 +92,20 @@ class ApiClient {
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final detail = payload is Map<String, dynamic> ? payload['detail'] : null;
-      throw ApiException(
-        response.statusCode,
-        detail is String ? detail : 'Wystąpił błąd komunikacji z serwerem.',
-      );
+      final message = switch (detail) {
+        String value => value,
+        List<dynamic> values =>
+          values
+              .map((value) {
+                if (value is Map<String, dynamic> && value['msg'] is String) {
+                  return value['msg'] as String;
+                }
+                return value.toString();
+              })
+              .join(', '),
+        _ => 'Wystąpił błąd komunikacji z serwerem.',
+      };
+      throw ApiException(response.statusCode, message);
     }
     return payload;
   }

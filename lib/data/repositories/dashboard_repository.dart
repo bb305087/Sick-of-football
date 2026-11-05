@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+
 import '../datasources/api_client.dart';
 import '../datasources/secure_storage_service.dart';
 import '../models/dashboard_models.dart';
+import '../models/profile_photo_model.dart';
 
 class DashboardRepository {
   final ApiClient _apiClient;
@@ -19,6 +23,55 @@ class DashboardRepository {
     return (items as List<dynamic>)
         .map((item) => EventModel.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<EventModel> createEvent({
+    required String type,
+    required String title,
+    required DateTime startsAt,
+    required DateTime endsAt,
+    required String location,
+  }) async {
+    final token = await _requiredAccessToken();
+    final response = await _apiClient.post(
+      '/api/events',
+      accessToken: token,
+      body: {
+        'type': type,
+        'title': title,
+        'starts_at': startsAt.toIso8601String(),
+        'ends_at': endsAt.toIso8601String(),
+        if (location.trim().isNotEmpty) 'location': location.trim(),
+      },
+    );
+    return EventModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<ProfilePhotoModel?> fetchProfilePhoto() async {
+    final token = await _requiredAccessToken();
+    final response = await _apiClient.get(
+      '/api/profile/photo',
+      accessToken: token,
+    );
+    if (response is! Map<String, dynamic> || response['content'] == null) {
+      return null;
+    }
+    return ProfilePhotoModel.fromJson(response);
+  }
+
+  Future<void> saveProfilePhoto(File photo) async {
+    final token = await _requiredAccessToken();
+    final bytes = await photo.readAsBytes();
+    final contentType = switch (photo.path.toLowerCase().split('.').last) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
+    await _apiClient.put(
+      '/api/profile/photo',
+      accessToken: token,
+      body: {'content': base64Encode(bytes), 'content_type': contentType},
+    );
   }
 
   Future<List<TeamMemberModel>> fetchTeamMembers() async {

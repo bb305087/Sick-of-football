@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../data/datasources/api_client.dart';
 import '../../data/models/dashboard_models.dart';
+import '../../data/models/profile_photo_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
 import 'tactics/tactic_detail_screen.dart';
@@ -12,6 +13,8 @@ import 'tactics/tactic_editor_screen.dart';
 import 'player/add_medical_report_screen.dart';
 import 'player/medical_report_detail_screen.dart';
 import 'profile/add_profile_photo_screen.dart';
+import 'event_detail_screen.dart';
+import 'event_editor_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String userRole;
@@ -31,6 +34,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<TacticModel> _tactics = [];
   List<MedicalReportModel> _medicalReports = [];
   File? _profilePhoto;
+  Uint8List? _profilePhotoBytes;
   bool _isLoading = true;
   String? _loadError;
 
@@ -51,11 +55,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         requests.add(_dashboardRepository.fetchMedicalReports());
       }
       final results = await Future.wait(requests);
+      ProfilePhotoModel? profilePhoto;
+      try {
+        profilePhoto = await _dashboardRepository.fetchProfilePhoto();
+      } on ApiException {
+        profilePhoto = null;
+      }
       if (!mounted) return;
       setState(() {
         _events = results[0] as List<EventModel>;
         _teamMembers = results[1] as List<TeamMemberModel>;
         _tactics = results[2] as List<TacticModel>;
+        _profilePhotoBytes = profilePhoto?.bytes;
         if (results.length > 3) {
           _medicalReports = results[3] as List<MedicalReportModel>;
         }
@@ -159,66 +170,161 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
     final nextEvent = _events.isEmpty ? null : _events.first;
-    return ListView(
-      padding: const EdgeInsets.all(16.0),
+    return Stack(
       children: [
-        Card(
-          color: Colors.green[50],
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Najbliższy mecz',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  nextEvent == null
-                      ? 'Brak zaplanowanych wydarzeń'
-                      : '${nextEvent.title} (${nextEvent.startsAt})',
-                ),
-                const SizedBox(height: 12),
-                if (!isCoach)
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+        ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            Card(
+              color: Colors.green[50],
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Najbliższy mecz',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
-                    onPressed: nextEvent == null
-                        ? null
-                        : () => _showPresenceDialog(context, nextEvent.id),
-                    icon: const Icon(Icons.check, color: Colors.white),
-                    label: const Text(
-                      'Zgłoś obecność / absencję',
-                      style: TextStyle(color: Colors.white),
+                    const SizedBox(height: 8),
+                    Text(
+                      nextEvent == null
+                          ? 'Brak zaplanowanych wydarzeń'
+                          : '${nextEvent.title} (${_formatEventDate(nextEvent.startsAt)})',
                     ),
-                  )
-                else
-                  const Text(
-                    ' Zgłoszonych zawodników: 14/18',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(height: 12),
+                    if (!isCoach)
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                        ),
+                        onPressed: nextEvent == null
+                            ? null
+                            : () => _showPresenceDialog(context, nextEvent.id),
+                        icon: const Icon(Icons.check, color: Colors.white),
+                        label: const Text(
+                          'Zgłoś obecność / absencję',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      )
+                    else
+                      const Text(
+                        ' Zgłoszonych zawodników: 14/18',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Wszystkie wydarzenia',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 8),
+            if (_events.isEmpty)
+              const Text('Brak zaplanowanych wydarzeń.')
+            else
+              ..._events.map(
+                (event) => Card(
+                  child: ListTile(
+                    leading: Icon(
+                      event.type == 'match'
+                          ? Icons.sports_soccer
+                          : Icons.fitness_center,
+                      color: Colors.green[700],
+                    ),
+                    title: Text(event.title),
+                    subtitle: Text(
+                      '${_formatEventDate(event.startsAt)}\n${event.location}',
+                    ),
+                    isThreeLine: true,
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => EventDetailScreen(event: event),
+                      ),
                     ),
                   ),
-              ],
+                ),
+              ),
+            const SizedBox(height: 16),
+            const Text(
+              'Ostatnie powiadomienia',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const ListTile(
+              leading: Icon(Icons.fitness_center, color: Colors.green),
+              title: Text('Trening: Wtorek 18:30'),
+              subtitle: Text('Boisko boczne (zbiórka 18:15)'),
+            ),
+          ],
+        ),
+        if (isCoach)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              onPressed: _openEventEditor,
+              icon: const Icon(Icons.add),
+              label: const Text('Dodaj wydarzenie'),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Ostatnie powiadomienia',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        const ListTile(
-          leading: Icon(Icons.fitness_center, color: Colors.green),
-          title: Text('Trening: Wtorek 18:30'),
-          subtitle: Text('Boisko boczne (zbiórka 18:15)'),
-        ),
       ],
     );
+  }
+
+  Future<void> _openEventEditor() async {
+    final draft = await Navigator.of(context).push<EventDraft>(
+      MaterialPageRoute(builder: (_) => const EventEditorScreen()),
+    );
+    if (!mounted || draft == null) return;
+    try {
+      final event = await _dashboardRepository.createEvent(
+        type: draft.type,
+        title: draft.title,
+        startsAt: draft.startsAt,
+        endsAt: draft.endsAt,
+        location: draft.location,
+      );
+      if (!mounted) return;
+      setState(
+        () => _events = [..._events, event]
+          ..sort((first, second) => first.startsAt.compareTo(second.startsAt)),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Wydarzenie zostało zapisane.')),
+      );
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+      );
+    } on FormatException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Serwer zwrócił nieprawidłowe dane.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  String _formatEventDate(DateTime value) {
+    final date = value.toLocal();
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '$day.$month.${date.year}, $hour:$minute';
   }
 
   // WIDOK 2: Taktyka
@@ -535,9 +641,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: CircleAvatar(
             radius: 40,
             backgroundImage: _profilePhoto == null
-                ? null
+                ? (_profilePhotoBytes == null
+                      ? null
+                      : MemoryImage(_profilePhotoBytes!))
                 : FileImage(_profilePhoto!),
-            child: _profilePhoto == null
+            child: _profilePhoto == null && _profilePhotoBytes == null
                 ? const Icon(Icons.person, size: 40)
                 : null,
           ),
@@ -555,12 +663,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
               MaterialPageRoute(builder: (_) => const AddProfilePhotoScreen()),
             );
             if (photo != null && mounted) {
-              setState(() => _profilePhoto = photo);
+              try {
+                await _dashboardRepository.saveProfilePhoto(photo);
+                if (!mounted) return;
+                setState(() {
+                  _profilePhoto = photo;
+                  _profilePhotoBytes = null;
+                });
+              } on ApiException catch (error) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(error.message),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             }
           },
           icon: const Icon(Icons.add_a_photo_outlined),
           label: Text(
-            _profilePhoto == null
+            _profilePhoto == null && _profilePhotoBytes == null
                 ? 'Dodaj zdjęcie profilowe'
                 : 'Zmień zdjęcie profilowe',
           ),

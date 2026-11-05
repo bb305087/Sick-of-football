@@ -2,7 +2,8 @@ class EventModel {
   final String id;
   final String type;
   final String title;
-  final String startsAt;
+  final DateTime startsAt;
+  final DateTime? endsAt;
   final String location;
 
   const EventModel({
@@ -10,6 +11,7 @@ class EventModel {
     required this.type,
     required this.title,
     required this.startsAt,
+    required this.endsAt,
     required this.location,
   });
 
@@ -18,7 +20,10 @@ class EventModel {
       id: json['id'].toString(),
       type: json['type'] as String,
       title: json['title'] as String,
-      startsAt: json['starts_at'].toString(),
+      startsAt: DateTime.parse(json['starts_at'].toString()).toLocal(),
+      endsAt: json['ends_at'] == null
+          ? null
+          : DateTime.parse(json['ends_at'].toString()).toLocal(),
       location: (json['location'] ?? 'Brak lokalizacji') as String,
     );
   }

@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import binascii
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from uuid import UUID, uuid4
@@ -19,7 +20,7 @@ from slowapi.util import get_remote_address
 from .core.config import Settings, get_settings
 from .core.crypto import FieldCipher, reason_aad
 from .db.session import get_db
-from .models import Availability, Event, RefreshToken, Tactic, User, Invitation, DeviceToken, MedicalReport
+from .models import Availability, Event, RefreshToken, Tactic, User, Invitation, DeviceToken, MedicalReport, ProfilePhoto
 from .models.device_token import Platform
 from .models.event import AvailabilityStatus, EventType
 from .schemas import (AttendanceIn, EventCreateIn, LoginIn, RefreshIn, TokenOut, UserOut,
@@ -163,6 +164,47 @@ async def register(request: RegisterIn, db: Annotated[AsyncSession, Depends(get_
 @app.get("/api/auth/me", response_model=UserOut)
 async def me(user: Annotated[User, Depends(get_current_user)]) -> UserOut:
     return public_user(user)
+
+@app.get("/api/profile/photo")
+async def get_profile_photo(
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str | None]:
+    photo = await db.get(ProfilePhoto, user.id)
+    if photo is None:
+        return {"content": None, "content_type": None}
+    return {
+        "content": base64.b64encode(photo.content).decode("ascii"),
+        "content_type": photo.content_type,
+    }
+
+@app.put("/api/profile/photo")
+async def put_profile_photo(
+    request: dict[str, str],
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
+    encoded = request.get("content", "")
+    content_type = request.get("content_type", "")
+    if content_type not in {"image/jpeg", "image/png", "image/webp"}:
+        raise HTTPException(422, "Nieobsługiwany format zdjęcia.")
+    try:
+        content = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise HTTPException(422, "Nieprawidłowe dane zdjęcia.") from exc
+    if not content or len(content) > 700_000:
+        raise HTTPException(413, "Zdjęcie jest za duże. Maksymalny rozmiar to 700 KB.")
+    photo = await db.get(ProfilePhoto, user.id)
+    if photo is None:
+        photo = ProfilePhoto(
+            user_id=user.id, content=content, content_type=content_type
+        )
+        db.add(photo)
+    else:
+        photo.content = content
+        photo.content_type = content_type
+    await db.commit()
+    return {"content_type": content_type}
 
 @app.post("/api/auth/refresh", response_model=TokenOut)
 async def refresh(

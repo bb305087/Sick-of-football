@@ -54,7 +54,7 @@ class RegisterIn(InputModel):
     email: str = Field(min_length=3, max_length=254)
     password: str = Field(min_length=8, max_length=128)
     full_name: str = Field(min_length=1, max_length=100)
-    invitation_token: str | None = Field(default=None, min_length=20, max_length=512)
+    invitation_token: str = Field(min_length=20, max_length=512)
 
 class PasswordChangeIn(InputModel):
     current_password: str = Field(min_length=1, max_length=128)

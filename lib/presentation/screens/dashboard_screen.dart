@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,6 +11,7 @@ import 'tactics/tactic_detail_screen.dart';
 import 'tactics/tactic_editor_screen.dart';
 import 'player/add_medical_report_screen.dart';
 import 'player/medical_report_detail_screen.dart';
+import 'profile/add_profile_photo_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String userRole;
@@ -27,6 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<TeamMemberModel> _teamMembers = [];
   List<TacticModel> _tactics = [];
   List<MedicalReportModel> _medicalReports = [];
+  File? _profilePhoto;
   bool _isLoading = true;
   String? _loadError;
 
@@ -524,20 +528,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // WIDOK 4: Profil
   Widget _buildProfileScreen() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircleAvatar(radius: 40, child: Icon(Icons.person, size: 40)),
-          const SizedBox(height: 16),
-          Text(
-            'Zalogowany jako: ${widget.userRole}',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        Center(
+          child: CircleAvatar(
+            radius: 40,
+            backgroundImage: _profilePhoto == null
+                ? null
+                : FileImage(_profilePhoto!),
+            child: _profilePhoto == null
+                ? const Icon(Icons.person, size: 40)
+                : null,
           ),
-          const SizedBox(height: 8),
-          const Text('Wersja aplikacji: 1.0.0-dev'),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Zalogowany jako: ${widget.userRole}',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 24),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final photo = await Navigator.of(context).push<File>(
+              MaterialPageRoute(builder: (_) => const AddProfilePhotoScreen()),
+            );
+            if (photo != null && mounted) {
+              setState(() => _profilePhoto = photo);
+            }
+          },
+          icon: const Icon(Icons.add_a_photo_outlined),
+          label: Text(
+            _profilePhoto == null
+                ? 'Dodaj zdjęcie profilowe'
+                : 'Zmień zdjęcie profilowe',
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Center(child: Text('Wersja aplikacji: 1.0.0-dev')),
+      ],
     );
   }
 

@@ -4,6 +4,10 @@ class UserModel {
   final String fullName;
   final String role;
   final String? clubId;
+  final String? nationality;
+  final DateTime? dateOfBirth;
+  final String? position;
+  final String? preferredFoot;
 
   const UserModel({
     required this.id,
@@ -11,6 +15,10 @@ class UserModel {
     required this.fullName,
     required this.role,
     required this.clubId,
+    this.nationality,
+    this.dateOfBirth,
+    this.position,
+    this.preferredFoot,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +28,12 @@ class UserModel {
       fullName: (json['full_name'] ?? json['name']) as String,
       role: json['role'] as String,
       clubId: json['club_id']?.toString(),
+      nationality: json['nationality'] as String?,
+      dateOfBirth: json['date_of_birth'] == null
+          ? null
+          : DateTime.tryParse(json['date_of_birth'].toString()),
+      position: json['position'] as String?,
+      preferredFoot: json['preferred_foot'] as String?,
     );
   }
 }

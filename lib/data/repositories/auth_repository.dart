@@ -76,4 +76,38 @@ class AuthRepository {
       await _storage.clearTokens();
     }
   }
+
+  Future<UserModel> fetchCurrentUser() async {
+    final token = await _requiredAccessToken();
+    final response = await _apiClient.get('/api/auth/me', accessToken: token);
+    return UserModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<UserModel> updateProfile({
+    required String? nationality,
+    required DateTime? dateOfBirth,
+    required String? position,
+    required String? preferredFoot,
+  }) async {
+    final token = await _requiredAccessToken();
+    final response = await _apiClient.patch(
+      '/api/auth/me',
+      accessToken: token,
+      body: {
+        'nationality': nationality,
+        'date_of_birth': dateOfBirth?.toIso8601String(),
+        'position': position,
+        'preferred_foot': preferredFoot,
+      },
+    );
+    return UserModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<String> _requiredAccessToken() async {
+    final token = await _storage.readAccessToken();
+    if (token == null || token.isEmpty) {
+      throw const ApiException(401, 'Sesja wygasła. Zaloguj się ponownie.');
+    }
+    return token;
+  }
 }

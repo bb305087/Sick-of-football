@@ -14,6 +14,7 @@ import 'tactics/tactic_editor_screen.dart';
 import 'player/add_medical_report_screen.dart';
 import 'player/medical_report_detail_screen.dart';
 import 'profile/add_profile_photo_screen.dart';
+import 'profile/profile_details_screen.dart';
 import 'event_detail_screen.dart';
 import 'event_editor_screen.dart';
 
@@ -703,6 +704,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ? 'Dodaj zdjęcie profilowe'
                 : 'Zmień zdjęcie profilowe',
           ),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ProfileDetailsScreen()),
+            );
+          },
+          icon: const Icon(Icons.badge_outlined),
+          label: const Text('Uzupełnij dane osobowe'),
         ),
         const SizedBox(height: 16),
         const Center(child: Text('Wersja aplikacji: 1.0.0-dev')),

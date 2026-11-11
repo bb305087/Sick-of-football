@@ -14,6 +14,10 @@ class User(UUIDPrimaryKey, CreatedAt, Base):
     email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    nationality: Mapped[str | None] = mapped_column(String(80))
+    date_of_birth: Mapped[datetime | None] = mapped_column(DateTime)
+    position: Mapped[str | None] = mapped_column(String(40))
+    preferred_foot: Mapped[str | None] = mapped_column(String(10))
     role: Mapped[Role] = mapped_column(
         Enum(Role, name="user_role", native_enum=False), nullable=False
     )

@@ -26,6 +26,7 @@ from .models.event import AvailabilityStatus, EventType
 from .schemas import (AttendanceIn, EventCreateIn, LoginIn, RefreshIn, TokenOut, UserOut,
                       TacticIn, RegisterIn, PasswordChangeIn, InvitationCreateIn,
                       InvitationOut, DeviceTokenIn, MedicalReportIn)
+from .schemas import ProfileUpdateIn
 from .security import (
     DUMMY_HASH,
     hash_password,
@@ -163,6 +164,20 @@ async def register(request: RegisterIn, db: Annotated[AsyncSession, Depends(get_
 
 @app.get("/api/auth/me", response_model=UserOut)
 async def me(user: Annotated[User, Depends(get_current_user)]) -> UserOut:
+    return public_user(user)
+
+@app.patch("/api/auth/me", response_model=UserOut)
+async def update_me(
+    payload: ProfileUpdateIn,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserOut:
+    user.nationality = payload.nationality
+    user.date_of_birth = payload.date_of_birth
+    user.position = payload.position
+    user.preferred_foot = payload.preferred_foot
+    await db.commit()
+    await db.refresh(user)
     return public_user(user)
 
 @app.get("/api/profile/photo")

@@ -26,6 +26,10 @@ class UserOut(BaseModel):
     full_name: str
     role: str
     club_id: UUID | None
+    nationality: str | None = None
+    date_of_birth: datetime | None = None
+    position: str | None = None
+    preferred_foot: str | None = None
 
 class EventCreateIn(InputModel):
     type: EventType
@@ -59,6 +63,12 @@ class RegisterIn(InputModel):
 class PasswordChangeIn(InputModel):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: str = Field(min_length=8, max_length=128)
+
+class ProfileUpdateIn(InputModel):
+    nationality: str | None = Field(default=None, max_length=80)
+    date_of_birth: datetime | None = None
+    position: str | None = Field(default=None, max_length=40)
+    preferred_foot: str | None = Field(default=None, max_length=10)
 
 class InvitationCreateIn(InputModel):
     max_uses: int = Field(default=1, ge=1, le=20)

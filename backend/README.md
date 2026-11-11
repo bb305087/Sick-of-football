@@ -64,6 +64,12 @@ Start-Process http://127.0.0.1:8000/docs
 The API container runs Alembic as `sof_migrator`, then runs the demo seed and
 the application as the restricted `sof_app` user.
 
+The API records request method, path, status, duration, and request ID only.
+It does not log request bodies, query strings, authorization headers, tokens,
+passwords, or medical data. Docker retains at most five 10 MB API log files;
+configure the production log collector with an equivalent or stricter
+retention policy.
+
 Stop containers while preserving data:
 
 ```powershell

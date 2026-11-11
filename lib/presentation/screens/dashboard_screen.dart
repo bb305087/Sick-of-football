@@ -8,6 +8,7 @@ import '../../data/models/dashboard_models.dart';
 import '../../data/models/profile_photo_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
+import 'auth/login_screen.dart';
 import 'tactics/tactic_detail_screen.dart';
 import 'tactics/tactic_editor_screen.dart';
 import 'player/add_medical_report_screen.dart';
@@ -116,9 +117,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.logout),
             tooltip: 'Wyloguj',
             onPressed: () async {
-              await _authRepository.logout();
+              try {
+                await _authRepository.logout();
+              } on ApiException catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Wylogowano lokalnie, ale serwer zwrócił błąd: ${error.message}',
+                    ),
+                    backgroundColor: Colors.orange[800],
+                  ),
+                );
+              }
               if (!context.mounted) return;
-              Navigator.of(context).pop();
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (_) => false,
+              );
             },
           ),
         ],

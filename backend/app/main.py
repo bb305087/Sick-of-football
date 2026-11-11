@@ -4,6 +4,7 @@ import base64
 import json
 import logging
 import binascii
+from time import perf_counter
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from uuid import UUID, uuid4
@@ -79,12 +80,36 @@ app.add_middleware(
 async def security_middleware(request: Request, call_next):
     request_id = request.headers.get("x-request-id") or str(uuid4())
     if request.headers.get("content-length") and int(request.headers["content-length"]) > 1_048_576:
+        logger.warning(
+            "http_request_rejected method=%s path=%s status=413 request_id=%s",
+            request.method,
+            request.url.path,
+            request_id,
+        )
         return Response("request too large", status_code=413, headers={"X-Request-ID": request_id})
-    response = await call_next(request)
+    started_at = perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.exception(
+            "http_request_failed method=%s path=%s request_id=%s",
+            request.method,
+            request.url.path,
+            request_id,
+        )
+        raise
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
+    logger.info(
+        "http_request method=%s path=%s status=%s duration_ms=%.1f request_id=%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        (perf_counter() - started_at) * 1000,
+        request_id,
+    )
     return response
 
 @app.get("/api/health")

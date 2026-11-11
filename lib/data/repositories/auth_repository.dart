@@ -61,7 +61,19 @@ class AuthRepository {
     await _apiClient.post('/api/v1/auth/register-player', body: body);
   }
 
-  Future<void> logout() {
-    return _storage.clearTokens();
+  Future<void> logout() async {
+    final refreshToken = await _storage.readRefreshToken();
+    try {
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        await _apiClient.post(
+          '/api/auth/logout',
+          body: {'refresh_token': refreshToken},
+        );
+      }
+    } on ApiException catch (error) {
+      if (error.statusCode != 401) rethrow;
+    } finally {
+      await _storage.clearTokens();
+    }
   }
 }

@@ -61,6 +61,31 @@ Invoke-RestMethod http://127.0.0.1:8000/api/health
 Start-Process http://127.0.0.1:8000/docs
 ```
 
+## Physical Android phone over USB
+
+For a physical Android phone connected by USB, enable **USB debugging** and
+accept the debugging prompt on the phone. Then, from the repository root,
+forward the backend port through ADB:
+
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb devices
+& $adb reverse tcp:8000 tcp:8000
+& $adb reverse --list
+```
+
+Run the Flutter app on the physical device with the USB endpoint:
+
+```powershell
+flutter run -d <device-id> --dart-define=API_BASE_URL=http://127.0.0.1:8000
+```
+
+Get `<device-id>` from `flutter devices` (for example, `R3CTC00HY3P`).
+`adb reverse` must be repeated after reconnecting or restarting the phone.
+This method keeps the backend on the computer and does not expose port 8000
+to the local network. The `10.0.2.2` address remains the default for an
+Android emulator.
+
 The API container runs Alembic as `sof_migrator`, then runs the demo seed and
 the application as the restricted `sof_app` user.
 

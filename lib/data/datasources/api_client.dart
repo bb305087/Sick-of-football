@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../core/constants/api_constants.dart';
+import 'api_client_factory.dart';
 import 'secure_storage_service.dart';
 
 class ApiException implements Exception {
@@ -23,7 +24,7 @@ class ApiClient {
   ApiClient({
     http.Client? client,
     SecureStorageService? storage,
-  }) : _client = client ?? http.Client(),
+  }) : _client = client ?? createApiClient(),
        _storage = storage ?? SecureStorageService();
 
   Future<dynamic> post(

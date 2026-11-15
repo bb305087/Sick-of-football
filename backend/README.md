@@ -76,12 +76,16 @@ The development `.env.example` enables both `HTTPS_ENABLED` and
 `HTTPS_AUTO_GENERATE_DEV_CERT` by default. After copying it to `.env`, the
 first `docker compose up --build` creates a self-signed certificate in the
 ignored `backend/certs` directory. Other developers therefore do not need to
-exchange certificate files, but their emulator/device must explicitly trust
-the self-signed certificate. The option must remain false in production.
+exchange certificate files. For the Android emulator, run Flutter with:
 
-A self-signed certificate is suitable only for local testing and will require
-explicit trust configuration on the client; it must not be used in a
-production deployment.
+```powershell
+flutter run --dart-define=API_BASE_URL=https://10.0.2.2:8443 `
+  --dart-define=ALLOW_SELF_SIGNED_CERTS=true
+```
+
+`ALLOW_SELF_SIGNED_CERTS` works only in debug builds and only for local
+hosts on port 8443. A self-signed certificate must never be accepted this way
+in a production deployment; use a CA-issued certificate there.
 
 ## Physical Android phone over USB
 

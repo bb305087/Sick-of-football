@@ -5,6 +5,10 @@ class ApiConstants {
     'API_BASE_URL',
     defaultValue: '',
   );
+  static const bool allowSelfSignedCertificates = bool.fromEnvironment(
+    'ALLOW_SELF_SIGNED_CERTS',
+    defaultValue: false,
+  );
   static const String loginEndpoint = '/api/auth/login';
 
   static String get resolvedBaseUrl {

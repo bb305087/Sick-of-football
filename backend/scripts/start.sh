@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-alembic upgrade head
+migrator_database_url="${MIGRATOR_DATABASE_URL:-$DATABASE_URL}"
+DATABASE_URL="$migrator_database_url" alembic upgrade head
 PYTHONPATH=/app python scripts/seed.py
 
 if [ "${HTTPS_ENABLED:-false}" = "true" ]; then

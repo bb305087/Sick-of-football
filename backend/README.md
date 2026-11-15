@@ -72,12 +72,12 @@ readable only by the deployment user. For production, terminate HTTPS at a
 managed reverse proxy/load balancer when available and keep the API port
 private.
 
-For local HTTPS testing, set both `HTTPS_ENABLED=true` and
-`HTTPS_AUTO_GENERATE_DEV_CERT=true`. On the first `docker compose up --build`,
-the container creates a self-signed certificate in the ignored
-`backend/certs` directory. Other developers therefore do not need to exchange
-certificate files, but their emulator/device must explicitly trust the
-self-signed certificate. The option must remain false in production.
+The development `.env.example` enables both `HTTPS_ENABLED` and
+`HTTPS_AUTO_GENERATE_DEV_CERT` by default. After copying it to `.env`, the
+first `docker compose up --build` creates a self-signed certificate in the
+ignored `backend/certs` directory. Other developers therefore do not need to
+exchange certificate files, but their emulator/device must explicitly trust
+the self-signed certificate. The option must remain false in production.
 
 A self-signed certificate is suitable only for local testing and will require
 explicit trust configuration on the client; it must not be used in a

@@ -53,13 +53,35 @@ docker compose ps
 docker compose logs -f api
 ```
 
-The API is available at `http://127.0.0.1:8000`. Check the database-backed
-health endpoint and open Swagger UI:
+For local development the API is available at `http://127.0.0.1:8000`. Check
+the database-backed health endpoint and open Swagger UI:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/api/health
 Start-Process http://127.0.0.1:8000/docs
 ```
+
+### HTTPS deployment
+
+For a deployed instance, place a CA-issued certificate and its private key in
+`backend/certs/fullchain.pem` and `backend/certs/privkey.pem` (do not commit
+them), then set `HTTPS_ENABLED=true` in `.env` and restart the API. Compose
+will serve the API on `https://<host>:8443`; configure the Flutter client with
+`--dart-define=API_BASE_URL=https://<host>:8443`. The private key must be
+readable only by the deployment user. For production, terminate HTTPS at a
+managed reverse proxy/load balancer when available and keep the API port
+private.
+
+For local HTTPS testing, set both `HTTPS_ENABLED=true` and
+`HTTPS_AUTO_GENERATE_DEV_CERT=true`. On the first `docker compose up --build`,
+the container creates a self-signed certificate in the ignored
+`backend/certs` directory. Other developers therefore do not need to exchange
+certificate files, but their emulator/device must explicitly trust the
+self-signed certificate. The option must remain false in production.
+
+A self-signed certificate is suitable only for local testing and will require
+explicit trust configuration on the client; it must not be used in a
+production deployment.
 
 ## Physical Android phone over USB
 
@@ -87,7 +109,10 @@ to the local network. The `10.0.2.2` address remains the default for an
 Android emulator.
 
 The API container runs Alembic as `sof_migrator`, then runs the demo seed and
-the application as the restricted `sof_app` user.
+the application as the restricted `sof_app` user. User passwords are hashed
+with Argon2id before being written to PostgreSQL; refresh tokens are stored
+only as SHA-256 digests. The focused check is
+`python -m pytest -q tests/test_security.py`.
 
 The API records request method, path, status, duration, and request ID only.
 It does not log request bodies, query strings, authorization headers, tokens,

@@ -20,6 +20,9 @@ services:
     env_file: .env
     ports:
       - "8000:8000"
+      - "8443:8443"
+    volumes:
+      - ./certs:/certs:ro
     logging:
       driver: json-file
       options:
@@ -27,6 +30,5 @@ services:
         max-file: "5"
     depends_on:
       db: {condition: service_healthy}
-    command: sh -c "DATABASE_URL=postgresql+asyncpg://sof_migrator:change-me@db:5432/sof alembic upgrade head && PYTHONPATH=/app python scripts/seed.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
 volumes:
   postgres_data:

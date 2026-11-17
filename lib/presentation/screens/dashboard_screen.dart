@@ -397,17 +397,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Future<void> _openTacticDetails(TacticModel tactic) {
-    return Navigator.of(context).push(
+  Future<void> _openTacticDetails(TacticModel tactic) async {
+    final updated = await Navigator.of(context).push<TacticModel>(
       MaterialPageRoute(
         builder: (_) => TacticDetailScreen(
           tactic: tactic,
           players: _teamMembers,
           canDelete: widget.userRole == 'Trener',
           onDelete: () => _deleteTactic(tactic),
+          onEdit: widget.userRole == 'Trener'
+              ? () => _editTactic(tactic)
+              : null,
         ),
       ),
     );
+    if (!mounted || updated == null) return;
+    setState(() {
+      final index = _tactics.indexWhere((item) => item.id == updated.id);
+      if (index >= 0) _tactics[index] = updated;
+    });
+  }
+
+  Future<TacticModel?> _editTactic(TacticModel tactic) async {
+    final draft = await Navigator.of(context).push<TacticDraft>(
+      MaterialPageRoute(
+        builder: (_) =>
+            TacticEditorScreen(players: _teamMembers, initialTactic: tactic),
+      ),
+    );
+    if (!mounted || draft == null) return null;
+    try {
+      return await _dashboardRepository.updateSquadTactic(
+        tacticId: tactic.id,
+        expectedVersion: tactic.version,
+        title: draft.title,
+        formation: draft.formation,
+        lineup: draft.lineup,
+        published: draft.published,
+      );
+    } on ApiException catch (error) {
+      if (!mounted) return null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+      );
+      return null;
+    }
   }
 
   Future<void> _deleteTactic(TacticModel tactic) async {

@@ -21,23 +21,16 @@ class ApiClient {
   final SecureStorageService _storage;
   Future<void>? _refreshInProgress;
 
-  ApiClient({
-    http.Client? client,
-    SecureStorageService? storage,
-  }) : _client = client ?? createApiClient(),
-       _storage = storage ?? SecureStorageService();
+  ApiClient({http.Client? client, SecureStorageService? storage})
+    : _client = client ?? createApiClient(),
+      _storage = storage ?? SecureStorageService();
 
   Future<dynamic> post(
     String endpoint, {
     Map<String, dynamic>? body,
     String? accessToken,
   }) async {
-    return _send(
-      'POST',
-      endpoint,
-      body: body,
-      accessToken: accessToken,
-    );
+    return _send('POST', endpoint, body: body, accessToken: accessToken);
   }
 
   Future<dynamic> get(String endpoint, {String? accessToken}) async {
@@ -49,12 +42,7 @@ class ApiClient {
     Map<String, dynamic>? body,
     String? accessToken,
   }) async {
-    return _send(
-      'PUT',
-      endpoint,
-      body: body,
-      accessToken: accessToken,
-    );
+    return _send('PUT', endpoint, body: body, accessToken: accessToken);
   }
 
   Future<dynamic> patch(
@@ -62,12 +50,7 @@ class ApiClient {
     Map<String, dynamic>? body,
     String? accessToken,
   }) async {
-    return _send(
-      'PATCH',
-      endpoint,
-      body: body,
-      accessToken: accessToken,
-    );
+    return _send('PATCH', endpoint, body: body, accessToken: accessToken);
   }
 
   Future<void> delete(String endpoint, {String? accessToken}) async {
@@ -81,14 +64,30 @@ class ApiClient {
     String? accessToken,
     bool retryAfterRefresh = true,
   }) async {
-    final request = http.Request(
-      method,
-      Uri.parse('${ApiConstants.resolvedBaseUrl}$endpoint'),
-    )..headers.addAll(_headers(accessToken));
-    if (body != null) {
-      request.body = jsonEncode(body);
+    Future<http.StreamedResponse> sendRequest() {
+      final request = http.Request(
+        method,
+        Uri.parse('${ApiConstants.resolvedBaseUrl}$endpoint'),
+      )..headers.addAll(_headers(accessToken));
+      if (body != null) {
+        request.body = jsonEncode(body);
+      }
+      return _client.send(request);
     }
-    final response = await _client.send(request);
+
+    late http.StreamedResponse response;
+    try {
+      response = await sendRequest();
+    } on http.ClientException {
+      if (!_isRetryableMethod(method)) {
+        throw ApiException(0, 'Nie można połączyć się z serwerem.');
+      }
+      try {
+        response = await sendRequest();
+      } on http.ClientException {
+        throw ApiException(0, 'Nie można połączyć się z serwerem.');
+      }
+    }
     final responseWithBody = await http.Response.fromStream(response);
 
     if (responseWithBody.statusCode == 401 &&
@@ -107,6 +106,13 @@ class ApiClient {
     }
 
     return _decodeResponse(responseWithBody);
+  }
+
+  bool _isRetryableMethod(String method) {
+    return method == 'GET' ||
+        method == 'PUT' ||
+        method == 'PATCH' ||
+        method == 'DELETE';
   }
 
   Future<String> _refreshAccessToken() async {
@@ -169,6 +175,12 @@ class ApiClient {
 
   Map<String, String> _headers(String? accessToken) {
     final headers = <String, String>{'Content-Type': 'application/json'};
+    final baseUri = Uri.parse(ApiConstants.resolvedBaseUrl);
+    if (baseUri.scheme == 'https' &&
+        baseUri.host == '10.0.2.2' &&
+        baseUri.port == 8443) {
+      headers['Connection'] = 'close';
+    }
     if (accessToken != null) {
       headers['Authorization'] =
           'Bear'

@@ -18,8 +18,13 @@ class TacticDraft {
 
 class TacticEditorScreen extends StatefulWidget {
   final List<TeamMemberModel> players;
+  final TacticModel? initialTactic;
 
-  const TacticEditorScreen({super.key, required this.players});
+  const TacticEditorScreen({
+    super.key,
+    required this.players,
+    this.initialTactic,
+  });
 
   @override
   State<TacticEditorScreen> createState() => _TacticEditorScreenState();
@@ -44,7 +49,31 @@ class _TacticEditorScreenState extends State<TacticEditorScreen> {
   @override
   void initState() {
     super.initState();
+    final tactic = widget.initialTactic;
+    _titleController.text = tactic?.title ?? '';
+    _formation = _formations.containsKey(tactic?.formation)
+        ? tactic!.formation!
+        : '4-3-3';
+    _published = tactic?.published ?? false;
     _selectedPlayers = List<String?>.filled(_positions.length, null);
+    if (tactic != null) {
+      final startingLineup = tactic.lineup
+          .where((player) => player['substitute'] != true)
+          .toList();
+      for (
+        var index = 0;
+        index < startingLineup.length && index < _selectedPlayers.length;
+        index++
+      ) {
+        _selectedPlayers[index] = startingLineup[index]['player_id']
+            ?.toString();
+      }
+      _substitutePlayers.addAll(
+        tactic.lineup
+            .where((player) => player['substitute'] == true)
+            .map((player) => player['player_id']?.toString()),
+      );
+    }
   }
 
   @override
@@ -66,6 +95,15 @@ class _TacticEditorScreenState extends State<TacticEditorScreen> {
 
   void _save() {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedPlayers.any((player) => player == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Obsadź wszystkie pozycje przed zapisaniem taktyki.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     final lineup = <Map<String, dynamic>>[];
     for (var index = 0; index < _positions.length; index++) {
       final playerId = _selectedPlayers[index];
@@ -209,13 +247,27 @@ class _TacticEditorScreenState extends State<TacticEditorScreen> {
 
   Widget _buildPlayerPicker(int index) {
     final position = _positions[index];
+    final selectedInOtherPositions = _selectedPlayers
+        .asMap()
+        .entries
+        .where((entry) => entry.key != index)
+        .map((entry) => entry.value)
+        .whereType<String>()
+        .toSet();
+    final selected = _selectedPlayers[index];
+    final availablePlayers = widget.players.where(
+      (player) =>
+          player.id == selected ||
+          !selectedInOtherPositions.contains(player.id),
+    );
+
     return DropdownButtonFormField<String>(
       key: ValueKey('$_formation-$index'),
-      initialValue: _selectedPlayers[index],
+      initialValue: selected,
       decoration: InputDecoration(labelText: '$position - zawodnik'),
       items: [
         const DropdownMenuItem<String>(value: null, child: Text('Nie wybrano')),
-        ...widget.players.map(
+        ...availablePlayers.map(
           (player) =>
               DropdownMenuItem(value: player.id, child: Text(player.name)),
         ),
@@ -260,9 +312,7 @@ class _TacticEditorScreenState extends State<TacticEditorScreen> {
 
   Widget _buildSubstitutePicker(int index) {
     final selectedStarting = _selectedPlayers.whereType<String>().toSet();
-    final selectedSubstitutes = _substitutePlayers
-        .whereType<String>()
-        .toSet();
+    final selectedSubstitutes = _substitutePlayers.whereType<String>().toSet();
     final selected = _substitutePlayers[index];
     final availablePlayers = widget.players.where(
       (player) =>

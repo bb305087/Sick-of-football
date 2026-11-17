@@ -7,6 +7,7 @@ class TacticDetailScreen extends StatelessWidget {
   final List<TeamMemberModel> players;
   final bool canDelete;
   final Future<void> Function()? onDelete;
+  final Future<TacticModel?> Function()? onEdit;
 
   const TacticDetailScreen({
     super.key,
@@ -14,6 +15,7 @@ class TacticDetailScreen extends StatelessWidget {
     required this.players,
     required this.canDelete,
     required this.onDelete,
+    required this.onEdit,
   });
 
   @override
@@ -22,6 +24,17 @@ class TacticDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(tactic.title),
         actions: [
+          if (onEdit != null)
+            IconButton(
+              tooltip: 'Edytuj taktykę',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () async {
+                final updated = await onEdit!();
+                if (updated != null && context.mounted) {
+                  Navigator.of(context).pop(updated);
+                }
+              },
+            ),
           if (canDelete)
             IconButton(
               tooltip: 'Usuń taktykę',
@@ -134,11 +147,7 @@ class TacticDetailScreen extends StatelessWidget {
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: substitutes.map(_substituteChip).toList(),
-          ),
+          Column(children: substitutes.map(_substituteChip).toList()),
         ],
       ],
     );
@@ -150,9 +159,13 @@ class TacticDetailScreen extends StatelessWidget {
     final name = matchingPlayers.isEmpty
         ? 'Zawodnik'
         : matchingPlayers.first.name;
-    return Chip(
-      avatar: const Icon(Icons.person_outline, size: 18),
-      label: Text(name),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+        title: Text(name),
+        subtitle: const Text('Rezerwowy'),
+      ),
     );
   }
 
@@ -191,7 +204,7 @@ class TacticDetailScreen extends StatelessWidget {
     final matchingPlayers = players.where((item) => item.id == playerId);
     final name = matchingPlayers.isEmpty
         ? 'Nie wybrano'
-        : matchingPlayers.first.name;
+        : _surnameOf(matchingPlayers.first.name);
     return Align(
       alignment: Alignment(slot.x * 2 - 1, slot.y * 2 - 1),
       child: SizedBox(
@@ -229,6 +242,11 @@ class TacticDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _surnameOf(String fullName) {
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    return parts.isEmpty ? fullName : parts.last;
   }
 
   List<_PitchSlot> _slotsFor(String formation) {

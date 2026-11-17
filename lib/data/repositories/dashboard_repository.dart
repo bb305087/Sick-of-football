@@ -105,10 +105,10 @@ class DashboardRepository {
     final token = await _requiredAccessToken();
     dynamic response;
     try {
-      response = await _apiClient.get('/api/tactics', accessToken: token);
+      response = await _apiClient.get('/api/v1/tactics', accessToken: token);
     } on ApiException catch (error) {
       if (error.statusCode != 404) rethrow;
-      response = await _apiClient.get('/api/v1/tactics', accessToken: token);
+      response = await _apiClient.get('/api/tactics', accessToken: token);
     }
 
     final items = response is List
@@ -157,6 +157,30 @@ class DashboardRepository {
         'lineup': lineup,
         'description': 'Skład $formation',
         'published': published,
+      },
+    );
+    return TacticModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<TacticModel> updateSquadTactic({
+    required String tacticId,
+    required int expectedVersion,
+    required String title,
+    required String formation,
+    required List<Map<String, dynamic>> lineup,
+    required bool published,
+  }) async {
+    final token = await _requiredAccessToken();
+    final response = await _apiClient.put(
+      '/api/v1/tactics/$tacticId',
+      accessToken: token,
+      body: {
+        'title': title,
+        'formation': formation,
+        'lineup': lineup,
+        'description': 'Skład $formation',
+        'published': published,
+        'expected_version': expectedVersion,
       },
     );
     return TacticModel.fromJson(response as Map<String, dynamic>);

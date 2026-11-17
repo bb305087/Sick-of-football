@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -127,6 +128,39 @@ class TacticIn(StrictInput):
     lineup: list[dict[str, Any]] = Field(default_factory=list, max_length=25)
     set_pieces: list[dict[str, Any]] = Field(default_factory=list, max_length=20)
     published: bool = False
+
+    @model_validator(mode="after")
+    def validate_lineup(self) -> "TacticIn":
+        formations = {
+            "4-3-3": ["GK", "LB", "CB", "CB", "RB", "CM", "CM", "CM", "LW", "ST", "RW"],
+            "4-4-2": ["GK", "LB", "CB", "CB", "RB", "LM", "CM", "CM", "RM", "ST", "ST"],
+            "3-5-2": ["GK", "CB", "CB", "CB", "LM", "CM", "CM", "CM", "RM", "ST", "ST"],
+        }
+        expected_positions = formations.get(self.formation)
+        starting_lineup = [
+            player for player in self.lineup if player.get("substitute") is not True
+        ]
+        if expected_positions is not None:
+            if len(starting_lineup) != len(expected_positions):
+                raise ValueError("all starting positions must be filled")
+            actual_positions = [player.get("position") for player in starting_lineup]
+            if any(not isinstance(position, str) or not position.strip()
+                   for position in actual_positions):
+                raise ValueError("lineup positions must be non-empty strings")
+            if Counter(actual_positions) != Counter(expected_positions):
+                raise ValueError("lineup positions do not match the formation")
+
+        selected_players: set[str] = set()
+        for player in self.lineup:
+            player_id = player.get("player_id")
+            if player_id is None:
+                continue
+            if not isinstance(player_id, str) or not player_id.strip():
+                raise ValueError("lineup player_id must be a non-empty string")
+            if player_id in selected_players:
+                raise ValueError("a player can only appear once in a lineup")
+            selected_players.add(player_id)
+        return self
 
 
 class TacticUpdate(TacticIn):

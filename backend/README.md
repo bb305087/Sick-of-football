@@ -15,7 +15,16 @@ From the repository root, create the local environment file:
 
 ```powershell
 cd backend
-Copy-Item .env.example .env
+.\scripts\ensure-local-env.ps1
+```
+
+You can run `.\scripts\ensure-local-env.ps1` again after pulling changes. It
+creates `.env` when needed and appends the local HTTPS settings if they are
+missing:
+
+```env
+HTTPS_ENABLED=true
+HTTPS_AUTO_GENERATE_DEV_CERT=true
 ```
 
 Generate the two application secrets:
@@ -173,6 +182,11 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | --- | --- | --- |
 | `admin` | `admin` | coach |
 | `player@example.com` | `password123` | player |
+
+The development seed also creates ten additional players, for eleven demo
+players in total. They all use the password `password123` and are assigned
+positions so they can be used in tactic lineups. The seed is idempotent and
+runs automatically when the API container starts.
 
 ## API
 
